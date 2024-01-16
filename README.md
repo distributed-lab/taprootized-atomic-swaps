@@ -11,7 +11,7 @@ can make a matching between transactions in the blockchains in which the exchang
 find out both the participants in the exchange and the proportion in which assets were exchanged.
 
 <div align="center">
-<img src="https://github.com/distributed-lab/taprootized-atomic-swaps/blob/main/assets/atomic-swap.png"/>
+<img src="assets/atomic-swap.png"/>
 </div>
 
 On the other hand, atomic swaps is a technology that initially assumed the involvement of only two 
@@ -26,7 +26,7 @@ information is disclosed (the fact of exchange can be traced). Still, it is impo
 to the corresponding Bitcoin transactions (without additional context from the involved parties).
 
 <div align="center">
-<img src="https://github.com/distributed-lab/taprootized-atomic-swaps/blob/main/assets/sequence-diagram.png"/>
+<img src="assets/sequence-diagram.png"/>
 </div>
 
 ### The protocol includes the following steps:
