@@ -1,0 +1,40 @@
+name: "Circom Setup"
+
+description: Install Circom
+
+runs:
+  using: composite
+  steps:
+    - name: Setup NodeJS
+      id: cache-npm
+      uses: actions/setup-node@v3
+      with:
+        node-version: "16.18.x"
+        cache: npm
+
+    - name: Install NPM Packages
+      if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
+      shell: bash
+      run: npm install
+
+    - name: Install SnarkJS
+      if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
+      shell: bash
+      run: npm install -g snarkjs
+
+    - name: Cache Circom
+      id: cache-circom
+      uses: actions/cache@v3
+      with:
+        path: |
+          /usr/local/bin/circom
+        key: ${{ runner.os }}-circom
+
+    - name: Install Circom
+      if: ${{ steps.cache-circom.outputs.cache-hit != 'true' }}
+      shell: bash
+      working-directory: /usr/local/bin
+      run: |
+        wget "https://github.com/iden3/circom/releases/download/v2.1.7/circom-linux-amd64"
+        chmod +x "./circom-linux-amd64"
+        mv ./circom-linux-amd64 ./circom

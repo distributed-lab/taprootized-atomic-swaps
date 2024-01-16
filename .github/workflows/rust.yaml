@@ -1,0 +1,58 @@
+name: "Rust Check, Test, Lint CI"
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main", "develop"]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTDOCFLAGS: -D warnings
+  RUSTFLAGS: "-Dwarnings"
+
+jobs:
+  lints:
+    name: Lints
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: "rustfmt, clippy"
+          toolchain: 1.72.0
+
+      - name: Run cargo check
+        run: cargo check
+
+      - name: Run cargo check on release version
+        run: cargo check --release
+
+      - name: Run cargo fmt
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --all-targets
+
+  doctests:
+    needs: [lints]
+    name: Check Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run cargo doc
+        run: cargo doc --no-deps
