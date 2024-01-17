@@ -33,7 +33,7 @@ echo -e "\nCompiling the circuits..."
 
 circom ${CIRCUIT_FILE} --r1cs --wasm --sym -o ${BUILD_DIR}
 
-mv ${BUILD_DIR}/${CIRCUIT_NAME}_js/${CIRCUIT_NAME}.wasm ${BUILD_DIR}/mul.wasm
+mv ${BUILD_DIR}/${CIRCUIT_NAME}_js/${CIRCUIT_NAME}.wasm ${BUILD_DIR}/${CIRCUIT_NAME}.wasm
 
 #snarkjs r1cs print ${BUILD_DIR}/${CIRCUIT_NAME}.r1cs ${BUILD_DIR}/${CIRCUIT_NAME}.sym
 
