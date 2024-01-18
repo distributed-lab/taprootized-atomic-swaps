@@ -27,4 +27,4 @@ jobs:
 
       - name: Circuits Compiling
         if: ${{ steps.cache-circuits.outputs.cache-hit != 'true' }}
-        run: ./scripts/compile-circuit.sh main
+        run: ./scripts/compile-circuit.sh atomic_swap
