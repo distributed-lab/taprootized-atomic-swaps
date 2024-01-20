@@ -90,9 +90,10 @@ describe("Taprootized Atomic Swaps", () => {
     const secret = ethers.hexlify(ethers.randomBytes(32));
     const secretHash = poseidonHash(secret);
 
-    await expect(depositor.deposit(USER2.address, secretHash, LOCK_TIME, { value: 0 }))
-      .to.be.revertedWithCustomError(depositor, "InsufficientDepositAmount")
-      .withArgs(0);
+    await expect(depositor.deposit(USER2.address, secretHash, LOCK_TIME, { value: 0 })).to.be.revertedWithCustomError(
+      depositor,
+      "ZeroDepositAmount"
+    );
   });
 
   it("should reject withdrawal with incorrect secret", async () => {

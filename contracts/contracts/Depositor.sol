@@ -4,7 +4,7 @@ pragma solidity 0.8.23;
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 library PoseidonUnit1L {
-    function poseidon(uint256[1] calldata) public pure returns (uint256) {}
+    function poseidon(bytes32[1] calldata) public pure returns (bytes32) {}
 }
 
 /**
@@ -26,7 +26,7 @@ contract Depositor {
     /**
      * @notice Represents the minimum time (in seconds) that a deposit must be locked in the contract. Set to one hour.
      */
-    uint256 public constant HOUR = 60 * 60;
+    uint256 public constant MIN_LOCK_TIME = 1 hours;
 
     /**
      * @notice Struct to store details of each deposit.
@@ -84,9 +84,8 @@ contract Depositor {
 
     /**
      * @notice Error thrown when a deposit is attempted with an amount of 0 ETH.
-     * @param sentAmount The amount of ETH attempted to be deposited, expected to be greater than 0.
      */
-    error InsufficientDepositAmount(uint256 sentAmount);
+    error ZeroDepositAmount();
 
     /**
      * @notice Error thrown when a deposit with the given secret hash already exists.
@@ -134,9 +133,9 @@ contract Depositor {
      * @param lockTime_ The duration (in seconds) for which the deposit is locked and cannot be withdrawn.
      */
     function deposit(address recipient_, bytes32 secretHash_, uint256 lockTime_) external payable {
-        if (msg.value == 0) revert InsufficientDepositAmount(msg.value);
+        if (msg.value == 0) revert ZeroDepositAmount();
         if (deposits[secretHash_].amount != 0) revert DepositAlreadyExists(secretHash_);
-        if (lockTime_ < HOUR) revert LockTimeTooShort(lockTime_, HOUR);
+        if (lockTime_ < MIN_LOCK_TIME) revert LockTimeTooShort(lockTime_, MIN_LOCK_TIME);
         if (recipient_ == address(0)) revert ZeroAddressNotAllowed();
 
         deposits[secretHash_] = Deposit({
@@ -157,7 +156,7 @@ contract Depositor {
      * @param secret_ The prototype of the `secretHash` used in the deposit function.
      */
     function withdraw(bytes32 secret_) external {
-        bytes32 secretHash_ = bytes32(PoseidonUnit1L.poseidon([uint256(secret_)]));
+        bytes32 secretHash_ = PoseidonUnit1L.poseidon([secret_]);
 
         Deposit storage userDeposit = deposits[secretHash_];
 
