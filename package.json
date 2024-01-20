@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "contracts-install": "npm install --prefix ./contracts",
+    "contracts-test": "npm run test --prefix ./contracts"
+  },
   "dependencies": {
     "circomlib": "2.0.5"
   }

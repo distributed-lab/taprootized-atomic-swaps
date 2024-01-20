@@ -1,0 +1,19 @@
+node_modules
+.env
+.DS_Store
+.npmrc
+
+# Hardhat files
+cache
+artifacts
+coverage.json
+coverage
+generated-markups
+abi
+docs/**/*.md
+
+# Typechain generated files
+generated-types
+
+# JetBrains IDE files
+.idea

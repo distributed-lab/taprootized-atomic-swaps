@@ -1,0 +1,13 @@
+{
+  "extends": "solhint:recommended",
+  "rules": {
+    "reentrancy": "warn",
+    "prettier/prettier": "warn",
+    "modifier-name-mixedcase": "warn",
+    "no-empty-blocks": "warn",
+    "func-visibility": "warn",
+    "max-states-count": "warn",
+    "not-rely-on-time": "warn",
+    "compiler-version": "warn"
+  }
+}

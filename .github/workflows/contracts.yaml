@@ -1,0 +1,30 @@
+name: "contracts"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16.18.x"
+          cache: npm
+
+      - name: Install packages
+        run: npm run contracts-install
+        shell: bash
+
+      - name: Run tests
+        run: npm run contracts-test
