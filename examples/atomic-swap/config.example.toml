@@ -1,0 +1,17 @@
+atomic_swap_contract_address = "0x3c9206e77C828FE30c7CC5747AD925c4F459eb72"
+# You can use `ganache` to run a local Ethereum node
+ethereum_rpc_url             = "http://127.0.0.1:8545"
+
+[bitcoin_rpc]
+# You can use `nigiri` to run a local Bitcoin regtest node
+url     = "http://127.0.0.1:18443"
+auth    = { username = "admin1", password = "123" }
+network = "regtest"
+
+[alice]
+bitcoin_private_key  = "dbf0d0e35b10578d001e3560946a40a5da79d24004b91685dd4eae947d435741"
+ethereum_private_key = "7319e149ff5ae8c0993261ef7d93c40c45dade4eb34c3ca20ba49260e9043a55"
+
+[bob]
+bitcoin_private_key  = "227217f135a31615788fc6f96ebf48c305f41f8d25037b816171de6e4c8fe4f7"
+ethereum_private_key = "2d831c8af153f5fa626c19aa051ffa75dc9493a3ec75519c95355cd1bc8960e1"
