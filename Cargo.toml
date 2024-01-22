@@ -4,13 +4,24 @@ version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0"
 
+[workspace]
+members = [
+    "crates/rapidsnark",
+    "crates/rapidsnark-sys",
+    "crates/witness_calculator"
+]
+
 [dependencies]
-eyre            = { version = "0.6.11",  default-features = false }
-poseidon-rs     = { version = "0.0.10",  default-features = false }
-clap            = { version = "4.4.18",  default-features = false, features = ["std"] }
-ethers          = { version = "2.0.11",  default-features = false }
-config          = { version = "0.13.4",  default-features = false, features = ["toml"] }
-serde           = { version = "1.0.130", default-features = false }
+rand                = { version = "0.8.4",   default-features = false }
+eyre                = { version = "0.6.11",  default-features = false }
+poseidon-rs         = { version = "0.0.10",  default-features = false }
+clap                = { version = "4.4.18",  default-features = false, features = ["std"] }
+ethers              = { version = "=2.0.7",  default-features = false }
+config              = { version = "0.13.4",  default-features = false, features = ["toml"] }
+serde               = { version = "1.0.130", default-features = false }
+num                 = { version = "0.4.0" }
+rapidsnark          = { path    = "crates/rapidsnark" }
+witness-calculator  = { path    = "crates/witness_calculator" }
 
 [dependencies.bdk]
 git              = "https://github.com/velykodnyi/bdk"

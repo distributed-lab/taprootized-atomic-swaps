@@ -1,0 +1,12 @@
+[package]
+name    = "witness-calculator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+thiserror  = { version = "1.0.39" }
+eyre       = { version = "0.6.11" }
+wasmer     = { version = "=4.2.5" }
+num-traits = { version = "=0.2.15"}
+num        = { version = "0.4.0" }
+fnv        = { version = "=1.0.7", default-features = false }

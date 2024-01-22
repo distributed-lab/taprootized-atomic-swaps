@@ -8,6 +8,11 @@ url     = "http://127.0.0.1:18443"
 auth    = { username = "admin1", password = "123" }
 network = "regtest"
 
+[circom]
+witnes_calculator_path = "./atomic_swap.dev/atomic_swap.wasm"
+proving_key_path = "./atomic_swap.dev/circuit_final.zkey"
+verification_key_path = "./atomic_swap.dev/verification_key.json"
+
 [alice]
 bitcoin_private_key  = "dbf0d0e35b10578d001e3560946a40a5da79d24004b91685dd4eae947d435741"
 ethereum_private_key = "7319e149ff5ae8c0993261ef7d93c40c45dade4eb34c3ca20ba49260e9043a55"

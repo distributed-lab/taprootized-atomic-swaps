@@ -16,25 +16,23 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
-/// Bitcoin's  [`bdk::Wallet`] with hardcoded [`MemoryDatabase`].
-pub type BitcoinWallet = bdk::Wallet<MemoryDatabase>;
-
 /// Contains the RAW config data.
 ///
 /// Use [`Config::<ConfigRaw>from`] to convert it to the 'high-level' [`Config`].
 #[derive(serde::Deserialize)]
-struct ConfirRaw {
+pub struct Config {
     pub atomic_swap_contract_address: EthereumAddress,
     pub ethereum_rpc_url: String,
     pub bitcoin_rpc: BitcoinRpcConfig,
+    pub circom: CircomConfig,
 
     #[serde(rename = "alice")]
-    pub alice_config: WalletsConfigRaw,
+    pub alice_config: WalletsConfig,
     #[serde(rename = "bob")]
-    pub bob_config: WalletsConfigRaw,
+    pub bob_config: WalletsConfig,
 }
 
-impl ConfirRaw {
+impl Config {
     /// Returns the [`ethers::signers::LocalWallet`] that can be used to sign transactions for the
     /// Ethereum network.
     pub fn ethereum_wallet(secret_key: String) -> Result<EthereumWallet> {
@@ -49,7 +47,7 @@ impl ConfirRaw {
         &self,
         secp_ctx: &Secp256k1<All>,
         secret_key: SecpSecretKey,
-    ) -> Result<(BitcoinWallet, BitcoinWalletClient)> {
+    ) -> Result<(bdk::Wallet<MemoryDatabase>, BitcoinWalletClient)> {
         let network = self.bitcoin_rpc.network;
         let private_key = BitcoinPrivateKey::new(secret_key, network);
 
@@ -117,7 +115,7 @@ impl ConfirRaw {
 }
 
 #[derive(serde::Deserialize)]
-pub struct WalletsConfigRaw {
+pub struct WalletsConfig {
     pub bitcoin_private_key: SecpSecretKey,
     pub ethereum_private_key: String,
 }
@@ -129,82 +127,9 @@ pub struct BitcoinRpcConfig {
     pub network: BitcoinNetwork,
 }
 
-pub struct WalletConfig {
-    pub bitcoin_wallet: BitcoinWallet,
-    pub bitcoin_wallet_client: BitcoinWalletClient,
-    pub ethereum_wallet: EthereumWallet,
-}
-
-/// Contains the config data that is needed to run the example.
-///
-/// Use [`Config::try_from`] to load the config from a file.
-pub struct Config {
-    pub atomic_swap_contract_address: EthereumAddress,
-    pub bitcoin_client: BitcoinClient,
-    pub ethereum_client: EthereumClient<Http>,
-
-    pub alice: WalletConfig,
-    pub bob: WalletConfig,
-}
-
-impl TryFrom<ConfirRaw> for Config {
-    type Error = eyre::Error;
-
-    fn try_from(raw: ConfirRaw) -> Result<Self> {
-        let secp_ctx = Secp256k1::new();
-
-        let bitcoin_client = raw
-            .bitcoin_client()
-            .wrap_err("failed to initialize Bitcoin RPC client")?;
-        let ethereum_client = raw
-            .ethereum_client()
-            .wrap_err("failed to initialize Ethereum RPC client")?;
-
-        let (alice_btc_wallet, alice_bitcoin_client) = raw
-            .bitcoin_wallet(&secp_ctx, raw.alice_config.bitcoin_private_key)
-            .wrap_err("failed to initialize Alice's Bitcoin wallet")?;
-        let alice_eth_wallet =
-            ConfirRaw::ethereum_wallet(raw.alice_config.ethereum_private_key.clone())
-                .wrap_err("failed to intialize Alice's Ethereum wallet")?;
-
-        let (bob_wallet, bob_bitcoin_client) = raw
-            .bitcoin_wallet(&secp_ctx, raw.bob_config.bitcoin_private_key)
-            .wrap_err("failed to initialize Bob's Bitcoin wallet")?;
-        let bob_eth_wallet =
-            ConfirRaw::ethereum_wallet(raw.bob_config.ethereum_private_key.clone())
-                .wrap_err("failed to initialize Bob's Ethereum wallet")?;
-
-        Ok(Self {
-            atomic_swap_contract_address: raw.atomic_swap_contract_address,
-            bitcoin_client,
-            ethereum_client,
-            alice: WalletConfig {
-                bitcoin_wallet: alice_btc_wallet,
-                bitcoin_wallet_client: alice_bitcoin_client,
-                ethereum_wallet: alice_eth_wallet,
-            },
-            bob: WalletConfig {
-                bitcoin_wallet: bob_wallet,
-                bitcoin_wallet_client: bob_bitcoin_client,
-                ethereum_wallet: bob_eth_wallet,
-            },
-        })
-    }
-}
-
-impl TryFrom<PathBuf> for Config {
-    type Error = eyre::Error;
-
-    /// Load the [`Config`] from a file by specified `path`.
-    fn try_from(path: PathBuf) -> Result<Self> {
-        let config = config::Config::builder()
-            .add_source(config::File::from(path))
-            .build()?;
-
-        config
-            .try_deserialize::<ConfirRaw>()
-            .wrap_err("failed to deserialize config")?
-            .try_into()
-            .wrap_err("failed to convert config")
-    }
+#[derive(Clone, serde::Deserialize)]
+pub struct CircomConfig {
+    pub witnes_calculator_path: PathBuf,
+    pub proving_key_path: PathBuf,
+    pub verification_key_path: PathBuf,
 }
