@@ -1,8 +1,7 @@
 use bdk::bitcoin::secp256k1::{All, Secp256k1, SecretKey as SecpSecretKey};
 use bdk::bitcoin::{Network as BitcoinNetwork, PrivateKey as BitcoinPrivateKey};
-use bdk::bitcoincore_rpc::Client as BitcoinClient;
 use bdk::blockchain::{
-    rpc::Auth as BdkRpcAuth, ConfigurableBlockchain, RpcBlockchain as BitcoinWalletClient,
+    rpc::Auth as BdkRpcAuth, ConfigurableBlockchain, RpcBlockchain as BitcoinClient,
     RpcConfig as BdkRpcConfig,
 };
 use bdk::database::MemoryDatabase;
@@ -13,7 +12,6 @@ use ethers::signers::LocalWallet as EthereumWallet;
 use ethers::types::Address as EthereumAddress;
 use eyre::{Context, Result};
 use std::path::PathBuf;
-use std::str::FromStr;
 use std::time::Duration;
 
 /// Contains the RAW config data.
@@ -26,6 +24,9 @@ pub struct Config {
     pub bitcoin_rpc: BitcoinRpcConfig,
     pub circom: CircomConfig,
 
+    pub sats_to_swap: u64,
+    pub gwei_to_swap: u64,
+
     #[serde(rename = "alice")]
     pub alice_config: WalletsConfig,
     #[serde(rename = "bob")]
@@ -35,8 +36,8 @@ pub struct Config {
 impl Config {
     /// Returns the [`ethers::signers::LocalWallet`] that can be used to sign transactions for the
     /// Ethereum network.
-    pub fn ethereum_wallet(secret_key: String) -> Result<EthereumWallet> {
-        let wallet = EthereumWallet::from_str(secret_key.as_str())?;
+    pub fn ethereum_wallet(secret_key: &[u8]) -> Result<EthereumWallet> {
+        let wallet = EthereumWallet::from_bytes(secret_key)?;
 
         Ok(wallet)
     }
@@ -47,7 +48,7 @@ impl Config {
         &self,
         secp_ctx: &Secp256k1<All>,
         secret_key: SecpSecretKey,
-    ) -> Result<(bdk::Wallet<MemoryDatabase>, BitcoinWalletClient)> {
+    ) -> Result<(bdk::Wallet<MemoryDatabase>, BitcoinClient)> {
         let network = self.bitcoin_rpc.network;
         let private_key = BitcoinPrivateKey::new(secret_key, network);
 
@@ -60,7 +61,7 @@ impl Config {
         .wrap_err("failed to initialize BDK wallet")?;
 
         let bitcoin_client = self
-            .bitcoin_client_for_wallet(secp_ctx, secret_key)
+            .bitcoin_client(secp_ctx, secret_key)
             .wrap_err("failed to initialize Bitcoin RPC client for wallet")?;
 
         wallet
@@ -79,22 +80,13 @@ impl Config {
         Ok(provider)
     }
 
-    /// Returns the [`bdk::bitcoincore_rpc::Client`] that can be used to send transactions to
-    /// the Bitcoin network.
-    pub fn bitcoin_client(&self) -> Result<BitcoinClient> {
-        let client =
-            BitcoinClient::new(&self.bitcoin_rpc.url, self.bitcoin_rpc.auth.clone().into())?;
-
-        Ok(client)
-    }
-
     /// Returns the [`bdk::blockchain::RpcBlockchain`] for the wallet. It will be used there to
     /// retrieve the UTXOs from Bitcoin.
-    fn bitcoin_client_for_wallet(
+    fn bitcoin_client(
         &self,
         secp_ctx: &Secp256k1<All>,
         secret_key: SecpSecretKey,
-    ) -> Result<BitcoinWalletClient> {
+    ) -> Result<BitcoinClient> {
         let network = self.bitcoin_rpc.network;
         let private_key = BitcoinPrivateKey::new(secret_key, network);
         let wallet_name =
@@ -108,7 +100,7 @@ impl Config {
             sync_params: None,
         };
 
-        let blockchain = BitcoinWalletClient::from_config(&config)?;
+        let blockchain = BitcoinClient::from_config(&config)?;
 
         Ok(blockchain)
     }
@@ -117,7 +109,7 @@ impl Config {
 #[derive(serde::Deserialize)]
 pub struct WalletsConfig {
     pub bitcoin_private_key: SecpSecretKey,
-    pub ethereum_private_key: String,
+    pub ethereum_private_key: SecpSecretKey,
 }
 
 #[derive(serde::Deserialize)]
