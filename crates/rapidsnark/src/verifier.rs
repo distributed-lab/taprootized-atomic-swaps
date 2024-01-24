@@ -25,11 +25,11 @@ pub enum Error {
 pub fn groth16_verifier(
     verification_key_json: &[u8],
     proof_json: &[u8],
-    public_inputs_json: &[u8],
+    pubsignals_json: &[u8],
 ) -> Result<bool, Error> {
     let proof = ZkProof::from_json(proof_json).unwrap();
     let verification_key: VerificationKey = VerificationKey::from_json(verification_key_json)?;
-    let public_inputs = PublicInputs::from_json(public_inputs_json)?;
+    let public_inputs = PublicInputs::from_json(pubsignals_json)?;
 
     let pvk = Groth16::<Bn254>::process_vk(&verification_key)?;
 
