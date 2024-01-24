@@ -6,13 +6,13 @@ use std::path::Path;
 /// in `repository/contracts` to compile it.
 const DEPOSITOR_ABI_ARTIFACTS_PATH: &str =
     "contracts/artifacts/contracts/Depositor.sol/Depositor.json";
-const DEPOSITOR_RUST_BINDINGS_PATH: &str = "src/depositor.rs";
+const DEPOSITOR_RUST_BINDINGS_PATH: &str = "src/depositor_contract.rs";
 
 fn main() {
     let cargo_manifest_path = env::var("CARGO_MANIFEST_DIR").unwrap();
     println!(
-        "cargo:rerun-if-changed={}/{}",
-        cargo_manifest_path, DEPOSITOR_ABI_ARTIFACTS_PATH
+        "cargo:rerun-if-changed={}/contracts/contracts/Depositor.sol",
+        cargo_manifest_path,
     );
 
     compile_depositor_bindings(cargo_manifest_path)

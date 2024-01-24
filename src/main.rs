@@ -31,7 +31,7 @@ use witness_calculator::WitnessCalculator;
 mod config;
 use crate::config::{CircomConfig, Config, WalletsConfig};
 
-mod depositor;
+mod contracts;
 
 /// 1 block = 10 minutes ==> 144 blocks = 24 hours
 const BITCOIN_CSV_DELAY_BLOCKS: i64 = 144;
