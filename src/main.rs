@@ -3,7 +3,7 @@ extern crate config as exconfig;
 use bdk::bitcoin::secp256k1::{All, Secp256k1};
 use bdk::bitcoin::{secp256k1, Address as BitcoinAddress, PublicKey, Txid as BitcoinTxid};
 use bdk::blockchain::{Blockchain, RpcBlockchain as BitcoinClient};
-use bdk::database::{BatchOperations, MemoryDatabase};
+use bdk::database::MemoryDatabase;
 use bdk::descriptor::IntoWalletDescriptor;
 use bdk::miniscript::descriptor::TapTree;
 use bdk::miniscript::policy::Concrete;
@@ -30,6 +30,8 @@ use witness_calculator::WitnessCalculator;
 
 mod config;
 use crate::config::{CircomConfig, Config, WalletsConfig};
+
+mod depositor;
 
 /// 1 block = 10 minutes ==> 144 blocks = 24 hours
 const BITCOIN_CSV_DELAY_BLOCKS: i64 = 144;
