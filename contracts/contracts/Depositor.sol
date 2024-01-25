@@ -72,7 +72,12 @@ contract Depositor {
      * @param secret The secret used to withdraw the deposit.
      * @param secretHash The Poseidon hash of the secret used to create the deposit.
      */
-    event Withdrawn(address indexed recipient, uint256 amount, bytes32[4] secret, bytes32 secretHash);
+    event Withdrawn(
+        address indexed recipient,
+        uint256 amount,
+        bytes32[4] secret,
+        bytes32 secretHash
+    );
 
     /**
      * @notice Emitted when deposited funds are restored to the sender after the lock time has expired.

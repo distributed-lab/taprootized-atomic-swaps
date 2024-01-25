@@ -1,6 +1,8 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
+import { Poseidon } from "@iden3/js-crypto";
+
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { increase } from "@nomicfoundation/hardhat-network-helpers/dist/src/helpers/time";
 
@@ -26,7 +28,7 @@ describe("Taprootized Atomic Swaps", () => {
 
     const DepositorFactory = await ethers.getContractFactory("Depositor", {
       libraries: {
-        PoseidonUnit1L: await (await getPoseidon(1)).getAddress(),
+        PoseidonUnit4L: await (await getPoseidon(4)).getAddress(),
       },
     });
     depositor = await DepositorFactory.connect(DEPLOYER).deploy();
@@ -36,9 +38,20 @@ describe("Taprootized Atomic Swaps", () => {
 
   afterEach(reverter.revert);
 
+  function generateSecret(): [string[], string] {
+    const part1 = ethers.hexlify(ethers.randomBytes(8));
+    const part2 = ethers.hexlify(ethers.randomBytes(8));
+    const part3 = ethers.hexlify(ethers.randomBytes(8));
+    const part4 = ethers.hexlify(ethers.randomBytes(8));
+
+    const inputs = [part1, part2, part3, part4].map((v) => BigInt(v));
+    const secretHash = ethers.toBeHex(Poseidon.hash(inputs), 32);
+
+    return [inputs.map((v) => ethers.toBeHex(v, 32)), secretHash];
+  }
+
   it("should deposit ETH with correct details", async () => {
-    const secret = ethers.hexlify(ethers.randomBytes(32));
-    const secretHash = poseidonHash(secret);
+    const [, secretHash] = generateSecret();
 
     const nextBlockTimestamp = (await time.latest()) + 1;
     await time.setNextBlockTimestamp(nextBlockTimestamp);
@@ -67,8 +80,7 @@ describe("Taprootized Atomic Swaps", () => {
   });
 
   it("should revert if trying to deposit with same secret hash", async () => {
-    const secret = ethers.hexlify(ethers.randomBytes(32));
-    const secretHash = poseidonHash(secret);
+    const [secret, secretHash] = generateSecret();
 
     await depositor.deposit(USER2.address, secretHash, LOCK_TIME, { value: DEPOSIT_AMOUNT });
 
@@ -78,8 +90,7 @@ describe("Taprootized Atomic Swaps", () => {
   });
 
   it("should reject deposit to zero address", async () => {
-    const secret = ethers.hexlify(ethers.randomBytes(32));
-    const secretHash = poseidonHash(secret);
+    const [secret, secretHash] = generateSecret();
 
     await expect(
       depositor.deposit(ethers.ZeroAddress, secretHash, LOCK_TIME, { value: DEPOSIT_AMOUNT })
@@ -87,8 +98,7 @@ describe("Taprootized Atomic Swaps", () => {
   });
 
   it("should reject deposit with insufficient amount", async () => {
-    const secret = ethers.hexlify(ethers.randomBytes(32));
-    const secretHash = poseidonHash(secret);
+    const [secret, secretHash] = generateSecret();
 
     await expect(depositor.deposit(USER2.address, secretHash, LOCK_TIME, { value: 0 })).to.be.revertedWithCustomError(
       depositor,
@@ -97,53 +107,51 @@ describe("Taprootized Atomic Swaps", () => {
   });
 
   it("should reject withdrawal with incorrect secret", async () => {
-    const secret = ethers.hexlify(ethers.randomBytes(32));
-    const incorrectSecret = ethers.hexlify(ethers.randomBytes(32));
-    const secretHash = poseidonHash(secret);
+    const [, secretHash] = generateSecret();
+    const [incorrectSecret, incorrectSecretHash] = generateSecret();
 
     await depositor.deposit(USER2.address, secretHash, LOCK_TIME, { value: DEPOSIT_AMOUNT });
 
-    await expect(depositor.withdraw(incorrectSecret))
+    await expect(depositor.withdraw([incorrectSecret[0], incorrectSecret[1], incorrectSecret[2], incorrectSecret[3]]))
       .to.be.revertedWithCustomError(depositor, "DepositDoesNotExist")
-      .withArgs(poseidonHash(incorrectSecret));
+      .withArgs(incorrectSecretHash);
   });
 
   it("should allow withdrawal with correct secret", async () => {
-    const secret = ethers.hexlify(ethers.randomBytes(32));
-    const secretHash = poseidonHash(secret);
+    const [secret, secretHash] = generateSecret();
 
     await depositor.deposit(USER2.address, secretHash, LOCK_TIME, { value: DEPOSIT_AMOUNT });
 
-    await expect(depositor.withdraw(secret))
+    await expect(depositor.withdraw([secret[0], secret[1], secret[2], secret[3]]))
       .to.emit(depositor, "Withdrawn")
       .withArgs(USER2.address, DEPOSIT_AMOUNT, secret, secretHash);
   });
 
   it("should prevent double withdrawal with same secret", async () => {
-    const secret = ethers.hexlify(ethers.randomBytes(32));
-    const secretHash = poseidonHash(secret);
+    const [secret, secretHash] = generateSecret();
 
     await depositor.deposit(USER2.address, secretHash, LOCK_TIME, { value: DEPOSIT_AMOUNT });
 
-    await depositor.withdraw(secret);
+    await depositor.withdraw([secret[0], secret[1], secret[2], secret[3]]);
 
-    await expect(depositor.withdraw(secret))
+    await expect(depositor.withdraw([secret[0], secret[1], secret[2], secret[3]]))
       .to.be.revertedWithCustomError(depositor, "DepositAlreadyWithdrawn")
       .withArgs(secretHash);
   });
 
   it("should reject withdrawal if the ETH transfer fails", async () => {
-    const secret = ethers.hexlify(ethers.randomBytes(32));
-    const secretHash = poseidonHash(secret);
+    const [secret, secretHash] = generateSecret();
 
     await depositor.deposit(await depositor.getAddress(), secretHash, LOCK_TIME, { value: DEPOSIT_AMOUNT });
 
-    await expect(depositor.withdraw(secret)).to.be.revertedWithCustomError(depositor, "FailedInnerCall");
+    await expect(depositor.withdraw([secret[0], secret[1], secret[2], secret[3]])).to.be.revertedWithCustomError(
+      depositor,
+      "FailedInnerCall"
+    );
   });
 
   it("should reject restoring before lock time expires", async () => {
-    const secret = ethers.hexlify(ethers.randomBytes(32));
-    const secretHash = poseidonHash(secret);
+    const [secret, secretHash] = generateSecret();
 
     const nextBlockTimestamp = (await time.latest()) + 1;
     await time.setNextBlockTimestamp(nextBlockTimestamp);
@@ -164,8 +172,7 @@ describe("Taprootized Atomic Swaps", () => {
   });
 
   it("should reject restoring if the ETH transfer fails", async () => {
-    const secret = ethers.hexlify(ethers.randomBytes(32));
-    const secretHash = poseidonHash(secret);
+    const [secret, secretHash] = generateSecret();
 
     await impersonateAccount(await depositor.getAddress());
     const depositorAsSigner = await ethers.getSigner(await depositor.getAddress());
@@ -179,12 +186,11 @@ describe("Taprootized Atomic Swaps", () => {
   });
 
   it("should reject restoring if the deposit is already withdrawn", async () => {
-    const secret = ethers.hexlify(ethers.randomBytes(32));
-    const secretHash = poseidonHash(secret);
+    const [secret, secretHash] = generateSecret();
 
     await depositor.deposit(USER2.address, secretHash, LOCK_TIME, { value: DEPOSIT_AMOUNT });
 
-    await depositor.withdraw(secret);
+    await depositor.withdraw([secret[0], secret[1], secret[2], secret[3]]);
 
     await increase(LOCK_TIME);
 
@@ -194,8 +200,7 @@ describe("Taprootized Atomic Swaps", () => {
   });
 
   it("should allow restoring after lock time", async () => {
-    const secret = ethers.hexlify(ethers.randomBytes(32));
-    const secretHash = poseidonHash(secret);
+    const [, secretHash] = generateSecret();
 
     await depositor.connect(USER1).deposit(USER2.address, secretHash, LOCK_TIME, { value: DEPOSIT_AMOUNT });
 
