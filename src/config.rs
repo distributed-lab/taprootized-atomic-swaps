@@ -14,9 +14,6 @@ use ethers::types::Address as EthereumAddress;
 use eyre::{Context, Result};
 use std::path::PathBuf;
 
-/// Contains the RAW config data.
-///
-/// Use [`Config::<ConfigRaw>from`] to convert it to the 'high-level' [`Config`].
 #[derive(serde::Deserialize)]
 pub struct Config {
     pub atomic_swap_contract_address: EthereumAddress,
@@ -33,8 +30,8 @@ pub struct Config {
 }
 
 impl Config {
-    /// Return the [`BitcoinWallet`] that can be used to operate with UTXOs and the
-    /// [`BitcoinWalletClient`] for retrieving the available UTXOs from the Bitcoin network.
+    /// Return the [`bdk::Wallet<MemoryDatabase>`] that can be used to operate with UTXOs and the
+    /// [`BitcoinClient`] for retrieving the available UTXOs from the Bitcoin network.
     pub fn bitcoin_wallet(
         &self,
         secp_ctx: &Secp256k1<All>,
