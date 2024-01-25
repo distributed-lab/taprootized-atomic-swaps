@@ -3,8 +3,8 @@ pragma solidity 0.8.23;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
-library PoseidonUnit1L {
-    function poseidon(bytes32[1] calldata) public pure returns (bytes32) {}
+library PoseidonUnit4L {
+    function poseidon(bytes32[4] calldata) public pure returns (bytes32) {}
 }
 
 /**
@@ -72,7 +72,7 @@ contract Depositor {
      * @param secret The secret used to withdraw the deposit.
      * @param secretHash The Poseidon hash of the secret used to create the deposit.
      */
-    event Withdrawn(address indexed recipient, uint256 amount, bytes32 secret, bytes32 secretHash);
+    event Withdrawn(address indexed recipient, uint256 amount, bytes32[4] secret, bytes32 secretHash);
 
     /**
      * @notice Emitted when deposited funds are restored to the sender after the lock time has expired.
@@ -155,8 +155,8 @@ contract Depositor {
      *      Uses the PoseidonUnit1L library to hash the provided secret.
      * @param secret_ The prototype of the `secretHash` used in the deposit function.
      */
-    function withdraw(bytes32 secret_) external {
-        bytes32 secretHash_ = PoseidonUnit1L.poseidon([secret_]);
+    function withdraw(bytes32[4] calldata secret_) external {
+        bytes32 secretHash_ = PoseidonUnit4L.poseidon(secret_);
 
         Deposit storage userDeposit = deposits[secretHash_];
 

@@ -6,9 +6,9 @@ import { poseidonContract } from "circomlibjs";
 
 export = async (deployer: Deployer) => {
   await deployer.deploy({
-    contractName: "contracts/Depositor.sol:PoseidonUnit1L",
-    bytecode: poseidonContract.createCode(1),
-    abi: poseidonContract.generateABI(1),
+    contractName: "contracts/Depositor.sol:PoseidonUnit4L",
+    bytecode: poseidonContract.createCode(4),
+    abi: poseidonContract.generateABI(4),
   });
 
   const depositor = await deployer.deploy(Depositor__factory);
