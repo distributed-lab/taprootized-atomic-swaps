@@ -7,11 +7,11 @@ use bdk::blockchain::{
 use bdk::database::MemoryDatabase;
 use bdk::wallet::wallet_name_from_descriptor;
 use bdk::{descriptor, SyncOptions};
-use ethers::providers::{Http, Provider as EthereumClient};
+use ethers::prelude::Ws;
+use ethers::providers::Provider as EthereumClient;
 use ethers::types::Address as EthereumAddress;
 use eyre::{Context, Result};
 use std::path::PathBuf;
-use std::time::Duration;
 
 /// Contains the RAW config data.
 ///
@@ -19,7 +19,7 @@ use std::time::Duration;
 #[derive(serde::Deserialize)]
 pub struct Config {
     pub atomic_swap_contract_address: EthereumAddress,
-    pub ethereum_rpc_url: String,
+    pub ethereum_ws_rpc_url: String,
     pub bitcoin_rpc: BitcoinRpcConfig,
     pub circom: CircomConfig,
 
@@ -63,9 +63,8 @@ impl Config {
 
     /// Returns the [`ethers::providers::Provider`] that can be used to send transactions to
     /// the Ethereum network.
-    pub fn ethereum_client(&self) -> Result<EthereumClient<Http>> {
-        let provider = EthereumClient::<Http>::try_from(self.ethereum_rpc_url.clone())?
-            .interval(Duration::from_millis(10u64));
+    pub async fn ethereum_client(&self) -> Result<EthereumClient<Ws>> {
+        let provider = EthereumClient::<Ws>::connect(self.ethereum_ws_rpc_url.clone()).await?;
 
         Ok(provider)
     }

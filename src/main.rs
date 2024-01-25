@@ -1,6 +1,6 @@
 extern crate config as exconfig;
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::io::Read;
 use std::ops::{Add, Div, Mul};
@@ -11,7 +11,7 @@ use std::time::Duration;
 use std::{env, thread};
 
 use bdk::bitcoin::hashes::hex::ToHex;
-use bdk::bitcoin::secp256k1::{All, Secp256k1};
+use bdk::bitcoin::secp256k1::{All, Scalar, Secp256k1};
 use bdk::bitcoin::{secp256k1, Address as BitcoinAddress, Txid as BitcoinTxid};
 use bdk::blockchain::{Blockchain, RpcBlockchain as BitcoinClient};
 use bdk::database::MemoryDatabase;
@@ -20,9 +20,9 @@ use bdk::miniscript::descriptor::TapTree;
 use bdk::miniscript::policy::Concrete;
 use bdk::miniscript::Descriptor;
 use bdk::wallet::AddressIndex;
-use bdk::{bitcoin, SignOptions, SyncOptions, Wallet as BitcoinWallet, Wallet};
-use ethers::prelude::{Http, SignerMiddleware};
-use ethers::providers::{Middleware, Provider as EthereumClient};
+use bdk::{bitcoin, KeychainKind, SignOptions, SyncOptions, Wallet as BitcoinWallet, Wallet};
+use ethers::prelude::{LocalWallet, SignerMiddleware};
+use ethers::providers::{Middleware, Provider as EthereumClient, Provider, StreamExt, Ws};
 use ethers::signers::{LocalWallet as EthereumWallet, Signer};
 use ethers::types::U256;
 use ethers::types::{Address as EthereumAddress, TxHash};
@@ -35,7 +35,7 @@ use rapidsnark::{groth16_prover, groth16_verifier};
 use witness_calculator::WitnessCalculator;
 
 use crate::config::{CircomConfig, Config, SwapParams, WalletsConfig};
-use crate::depositor_contract::Depositor as DepositorContract;
+use crate::depositor_contract::{Depositor as DepositorContract, Depositor};
 
 mod config;
 mod depositor_contract;
@@ -76,14 +76,36 @@ pub struct SwapParticipant {
 
     swap_params: SwapParams,
 
+    /// Swap secret that it needed to spend locked money from either Bitcoin or Ethereum
+    /// atomic-swap.
+    ///
+    /// It is [`Some`] only after either [`Self::new_atomic_swap`] for swap initiator or after
+    /// counterparty noticed initiator withdrawal transaction.
+    swap_secret: Option<[u8; 32]>,
+
+    /// Posidon hash of the swap secret.
+    ///
+    /// It is [`Some`] only after either [`Self::new_atomic_swap`] for swap initiator or
+    /// [`Self::accept_atomic_swap`] for swap counteraprty.
+    swap_secret_hash: Option<[u8; 32]>,
+
+    /// Counterparty's Bitcoin public key that is used as a revocation key in Taprootized
+    /// atomic-swap transaction.
+    ///
+    /// It is [`Some`] only after [`Self::accept_atomic_swap`] and only for counterparty.
+    counterparty_bitcoin_pubkey: Option<secp256k1::PublicKey>,
+
     atomic_swap_contract_address: EthereumAddress,
     circom: CircomConfig,
     bitcoin_client: BitcoinClient,
-    ethereum_client: EthereumClient<Http>,
+    ethereum_client: EthereumClient<Ws>,
 
     bitcoin_wallet: BitcoinWallet<MemoryDatabase>,
     ethereum_wallet: EthereumWallet,
 }
+
+unsafe impl Send for SwapParticipant {}
+unsafe impl Sync for SwapParticipant {}
 
 impl SwapParticipant {
     pub async fn from_config(
@@ -96,6 +118,7 @@ impl SwapParticipant {
 
         let ethereum_client = config
             .ethereum_client()
+            .await
             .wrap_err("failed to initialize Ethereum RPC client")?;
 
         let chain_id = ethereum_client.get_chainid().await?;
@@ -121,6 +144,9 @@ impl SwapParticipant {
         Ok(Self {
             name,
             keys,
+            counterparty_bitcoin_pubkey: None,
+            swap_secret: None,
+            swap_secret_hash: None,
             swap_params: config.swap_params.clone(),
             atomic_swap_contract_address: config.atomic_swap_contract_address,
             circom: config.circom.clone(),
@@ -140,23 +166,30 @@ impl SwapParticipant {
     }
 
     pub fn new_atomic_swap(
-        &self,
+        &mut self,
         sats_to_swap: u64,
         counterparty_bitcoin_pubkey: secp256k1::PublicKey,
         rng: &mut ThreadRng,
         secp_ctx: &Secp256k1<All>,
     ) -> Result<(String, String)> {
-        println!("\n{} starts atomic-swap", self.name);
+        println!("\n= {} starts atomic-swap", self.name);
 
         let swap_secret = secp256k1::SecretKey::new(rng);
+        self.swap_secret = Some(swap_secret.secret_bytes());
 
         println!("| Swap k secret: {}", swap_secret.display_secret());
-        println!("| Swap k public: {}", swap_secret.public_key(secp_ctx));
 
         println!("| Calculating zero-knowledge proof...");
         let (proof, pubsignals) = self
             .generate_swap_proof(swap_secret)
             .wrap_err("failed to generate atomic-swap proof")?;
+
+        let (swap_pubkey, swap_secret_hash) =
+            parse_atomic_swap_proof_pubsignals(pubsignals.clone())?;
+        self.swap_secret_hash = Some(swap_secret_hash);
+
+        println!("| Swap k public: {}", swap_pubkey);
+        println!("| Swap secret's hash: {}", hex::encode(swap_secret_hash));
 
         let swap_pubkey = swap_secret.public_key(secp_ctx);
         let escrow_pubkey = swap_pubkey
@@ -175,23 +208,23 @@ impl SwapParticipant {
     }
 
     pub async fn accept_atomic_swap(
-        &self,
+        &mut self,
         proof: String,
-        pubsignals_json: String,
+        pubsignals: String,
         counterparty_bitcoin_pubkey: secp256k1::PublicKey,
         counterparty_ethereum_address: EthereumAddress,
     ) -> Result<()> {
-        println!("\n{} accepts atomic-swap", self.name);
+        println!("\n= {} accepts atomic-swap", self.name);
+
+        self.counterparty_bitcoin_pubkey = Some(counterparty_bitcoin_pubkey);
 
         println!("| Verifying zero-knowledge proof...");
-        if !self.verify_swap_proof(proof, pubsignals_json.clone())? {
+        if !self.verify_swap_proof(proof, pubsignals.clone())? {
             return Err(eyre!("invalid atomic-swap proof"));
         }
 
-        let public_inputs: Vec<String> = serde_json::from_str(pubsignals_json.as_str())?;
-        let (swap_pubkey, swap_secret_hash) = parse_atomic_swap_proof_pubsignals(public_inputs)?;
-
-        println!("| Swap secret's hash: {}", hex::encode(swap_secret_hash));
+        let (swap_pubkey, swap_secret_hash) = parse_atomic_swap_proof_pubsignals(pubsignals)?;
+        self.swap_secret_hash = Some(swap_secret_hash);
 
         let swap_transaction_found = self
             .check_atomic_swap_tx_appeared_on_bitcoin(swap_pubkey, counterparty_bitcoin_pubkey)
@@ -209,6 +242,82 @@ impl SwapParticipant {
 
         println!(
             "| Atomic-swap transaction has been sent to Ethereum: {}",
+            tx_id.to_hex()
+        );
+
+        Ok(())
+    }
+
+    pub async fn listen_to_deposit_events(self) -> Result<()> {
+        let Some(swap_secret_hash) = self.swap_secret_hash else {
+            return Err(eyre!("swap secret hash is absent"));
+        };
+
+        let Some(swap_secret) = self.swap_secret else {
+            return Err(eyre!("swap secret is absent"));
+        };
+
+        let start_block = self.ethereum_client.get_block_number().await?;
+        let contract = self.deposit_contract();
+        let events = contract.deposited_filter().from_block(start_block);
+
+        let mut deposits = events.subscribe().await?;
+        // TODO: Here we also MUST wait for the CSV of our atomic-swap transaction in Bitcoin.
+        // If we can spend the Bitcoin transaction with revocation (internal) key - we must do it.
+        while let Some(log) = deposits.next().await {
+            let deposit = log?;
+
+            if deposit.secret_hash == swap_secret_hash {
+                break;
+            }
+        }
+
+        let tx_id = self.withdraw_money_from_swap_contract(swap_secret).await?;
+        println!(
+            "\n= {} has spent locked money on Ethereum in: {}",
+            self.name,
+            tx_id.to_hex()
+        );
+
+        Ok(())
+    }
+
+    pub async fn listen_to_withdraw_events(self) -> Result<()> {
+        let Some(swap_secret_hash) = self.swap_secret_hash else {
+            return Err(eyre!("swap secret hash is absent"));
+        };
+
+        let Some(counterparty_bitcoin_pubkey) = self.counterparty_bitcoin_pubkey else {
+            return Err(eyre!("counterparty bitcoin pubkey is absent"));
+        };
+
+        let start_block = self.ethereum_client.get_block_number().await?;
+        let contract = self.deposit_contract();
+        let events = contract.withdrawn_filter().from_block(start_block - 5);
+
+        let mut swap_secret = [0u8; 32];
+
+        let mut withdrawals = events.subscribe().await?;
+
+        // TODO: Here we also MUST wait for the CSV of our atomic-swap transaction in Bitcoin.
+        // If we can spend the Bitcoin transaction with revocation (internal) key - we must do it.
+        while let Some(log) = withdrawals.next().await {
+            let withdrawal = log?;
+
+            if withdrawal.secret_hash == swap_secret_hash {
+                swap_secret = withdrawal.secret;
+                break;
+            }
+        }
+
+        let tx_id = self.withdraw_money_from_taprootized_swap_tx(
+            counterparty_bitcoin_pubkey,
+            secp256k1::SecretKey::from_slice(&swap_secret)
+                .expect("It's impossible to fail for [u8;32]"),
+        )?;
+        println!(
+            "\n= {} has spent locked money on Bitcoin in: {}",
+            self.name,
             tx_id.to_hex()
         );
 
@@ -235,12 +344,14 @@ async fn main() -> Result<()> {
     let secp_ctx = Secp256k1::new();
     let rng = &mut rand::thread_rng();
 
-    let alice =
+    let mut alice =
         SwapParticipant::from_config("Alice".to_string(), &cfg, &cfg.alice_config, &secp_ctx)
             .await
             .wrap_err("failed to initialize Alice")?;
+    let alice_bitcoin_public_key = alice.bitcoin_public_key();
+    let alice_ethereum_address = alice.ethereum_address();
 
-    let bob = SwapParticipant::from_config("Bob".to_string(), &cfg, &cfg.bob_config, &secp_ctx)
+    let mut bob = SwapParticipant::from_config("Bob".to_string(), &cfg, &cfg.bob_config, &secp_ctx)
         .await
         .wrap_err("failed to initialize Bob")?;
 
@@ -251,13 +362,22 @@ async fn main() -> Result<()> {
         &secp_ctx,
     )?;
 
+    tokio::spawn(async {
+        alice
+            .listen_to_deposit_events()
+            .await
+            .map_err(|err| panic!("{err}"))
+    });
+
     bob.accept_atomic_swap(
         proof,
         pubsignals,
-        alice.bitcoin_public_key(),
-        alice.ethereum_address(),
+        alice_bitcoin_public_key,
+        alice_ethereum_address,
     )
     .await?;
+
+    bob.listen_to_withdraw_events().await?;
 
     Ok(())
 }
@@ -315,17 +435,97 @@ impl SwapParticipant {
         Ok(is_proof_valid)
     }
 
-    async fn send_atomic_swap_tx_to_ethereum(
-        &self,
-        swap_secret_hash: [u8; 32],
-        counterparty_ethereum_address: EthereumAddress,
-    ) -> Result<TxHash> {
+    fn deposit_contract(&self) -> Depositor<SignerMiddleware<Provider<Ws>, LocalWallet>> {
         let signer = Arc::new(SignerMiddleware::new(
             self.ethereum_client.clone(),
             self.ethereum_wallet.clone(),
         ));
 
-        let contract = DepositorContract::new(self.atomic_swap_contract_address, signer);
+        DepositorContract::new(self.atomic_swap_contract_address, signer)
+    }
+
+    async fn withdraw_money_from_swap_contract(&self, swap_secret: [u8; 32]) -> Result<TxHash> {
+        let contract = self.deposit_contract();
+
+        let contract_call = contract.withdraw(swap_secret);
+        let pending_tx = contract_call.send().await?;
+
+        Ok(pending_tx.tx_hash())
+    }
+
+    fn withdraw_money_from_taprootized_swap_tx(
+        &self,
+        counterparty_bitcoin_pubkey: secp256k1::PublicKey,
+        swap_secret: secp256k1::SecretKey,
+    ) -> Result<BitcoinTxid> {
+        let escrow_privkey = bitcoin::PrivateKey::new(
+            swap_secret
+                .add_tweak(&Scalar::from_be_bytes(
+                    self.keys.bitcoin.secret_key().secret_bytes(),
+                )?)
+                .expect("It's impossible to fail for 2 different public keys"),
+            self.bitcoin_wallet.network(),
+        );
+        let revocation_pubkey = bitcoin::PublicKey::new(counterparty_bitcoin_pubkey);
+
+        let taproot_descriptor = bdk::descriptor!(tr(
+            escrow_privkey,
+            and_v(v:pk(revocation_pubkey), older(self.swap_params.bitcoin_csv_delay))
+        ))?;
+
+        let wallet = Wallet::new(
+            taproot_descriptor,
+            None,
+            self.bitcoin_wallet.network(),
+            MemoryDatabase::new(),
+        )?;
+
+        wallet
+            .sync(&self.bitcoin_client, SyncOptions::default())
+            .wrap_err("failed to sync a BDK wallet")?;
+
+        let wallet_policy = wallet.policies(KeychainKind::External)?.unwrap();
+        let mut path = BTreeMap::new();
+        // We need to use the first leaf of the script path spend, hence the second policy
+        // If you're not sure what's happening here, no worries, this is bit tricky :)
+        // You can learn more here: https://docs.rs/bdk/latest/bdk/wallet/tx_builder/struct.TxBuilder.html#method.policy_path
+        path.insert(wallet_policy.id, vec![0]);
+
+        let (mut psbt, _details) = {
+            let mut builder = wallet.build_tx();
+
+            let recepient_address = BitcoinAddress::p2wpkh(
+                &bitcoin::PublicKey::new(self.keys.bitcoin.public_key()),
+                self.bitcoin_wallet.network(),
+            )?;
+
+            builder
+                .drain_wallet()
+                .drain_to(recepient_address.script_pubkey())
+                .policy_path(path, KeychainKind::External);
+
+            builder.finish()?
+        };
+
+        let is_finalized = wallet.sign(&mut psbt, SignOptions::default())?;
+
+        if !is_finalized {
+            return Err(eyre!("failed to sign and finalize a transaction"));
+        }
+
+        let txid = psbt.unsigned_tx.txid();
+
+        self.bitcoin_client.broadcast(&psbt.extract_tx())?;
+
+        Ok(txid)
+    }
+
+    async fn send_atomic_swap_tx_to_ethereum(
+        &self,
+        swap_secret_hash: [u8; 32],
+        counterparty_ethereum_address: EthereumAddress,
+    ) -> Result<TxHash> {
+        let contract = self.deposit_contract();
 
         let wei_to_send = U256::from(self.swap_params.gwei_to_swap).mul(10u32.pow(Gwei.as_num()));
         let mut contract_call = contract.deposit(
@@ -455,8 +655,10 @@ impl SwapParticipant {
 }
 
 fn parse_atomic_swap_proof_pubsignals(
-    pubsignals: Vec<String>,
+    pubsignals_json: String,
 ) -> Result<(secp256k1::PublicKey, [u8; 32])> {
+    let pubsignals: Vec<String> = serde_json::from_str(pubsignals_json.as_str())?;
+
     let pubkey = parse_pubkey_from_str_vec(pubsignals.clone())
         .wrap_err("failed to parse pubkey from pubsignals")?;
 
