@@ -7,14 +7,16 @@ pub use depositor::*;
     clippy::upper_case_acronyms,
     clippy::type_complexity,
     dead_code,
-    non_camel_case_types,
+    non_camel_case_types
 )]
 pub mod depositor {
     #[rustfmt::skip]
     const __ABI: &str = "[{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"secretHash\",\"type\":\"bytes32\",\"components\":[]}],\"type\":\"error\",\"name\":\"DepositAlreadyExists\",\"outputs\":[]},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"secretHash\",\"type\":\"bytes32\",\"components\":[]}],\"type\":\"error\",\"name\":\"DepositAlreadyWithdrawn\",\"outputs\":[]},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"secretHash\",\"type\":\"bytes32\",\"components\":[]}],\"type\":\"error\",\"name\":\"DepositDoesNotExist\",\"outputs\":[]},{\"inputs\":[],\"type\":\"error\",\"name\":\"FailedInnerCall\",\"outputs\":[]},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"providedLockTime\",\"type\":\"uint256\",\"components\":[]},{\"internalType\":\"uint256\",\"name\":\"minimumLockTime\",\"type\":\"uint256\",\"components\":[]}],\"type\":\"error\",\"name\":\"LockTimeTooShort\",\"outputs\":[]},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"currentTime\",\"type\":\"uint256\",\"components\":[]},{\"internalType\":\"uint256\",\"name\":\"lockTime\",\"type\":\"uint256\",\"components\":[]}],\"type\":\"error\",\"name\":\"TimeLockNotExpired\",\"outputs\":[]},{\"inputs\":[],\"type\":\"error\",\"name\":\"ZeroAddressNotAllowed\",\"outputs\":[]},{\"inputs\":[],\"type\":\"error\",\"name\":\"ZeroDepositAmount\",\"outputs\":[]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\",\"components\":[],\"indexed\":true},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\",\"components\":[],\"indexed\":true},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\",\"components\":[],\"indexed\":false},{\"internalType\":\"uint256\",\"name\":\"lockTime\",\"type\":\"uint256\",\"components\":[],\"indexed\":false},{\"internalType\":\"bytes32\",\"name\":\"secretHash\",\"type\":\"bytes32\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"Deposited\",\"outputs\":[],\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\",\"components\":[],\"indexed\":true},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\",\"components\":[],\"indexed\":false},{\"internalType\":\"bytes32\",\"name\":\"secretHash\",\"type\":\"bytes32\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"Restored\",\"outputs\":[],\"anonymous\":false},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\",\"components\":[],\"indexed\":true},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\",\"components\":[],\"indexed\":false},{\"internalType\":\"bytes32[4]\",\"name\":\"secret\",\"type\":\"bytes32[4]\",\"components\":[],\"indexed\":false},{\"internalType\":\"bytes32\",\"name\":\"secretHash\",\"type\":\"bytes32\",\"components\":[],\"indexed\":false}],\"type\":\"event\",\"name\":\"Withdrawn\",\"outputs\":[],\"anonymous\":false},{\"inputs\":[],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"MIN_LOCK_TIME\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\",\"components\":[]}]},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient_\",\"type\":\"address\",\"components\":[]},{\"internalType\":\"bytes32\",\"name\":\"secretHash_\",\"type\":\"bytes32\",\"components\":[]},{\"internalType\":\"uint256\",\"name\":\"lockTime_\",\"type\":\"uint256\",\"components\":[]}],\"stateMutability\":\"payable\",\"type\":\"function\",\"name\":\"deposit\",\"outputs\":[]},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\",\"components\":[]}],\"stateMutability\":\"view\",\"type\":\"function\",\"name\":\"deposits\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\",\"components\":[]},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\",\"components\":[]},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\",\"components\":[]},{\"internalType\":\"uint256\",\"name\":\"lockTime\",\"type\":\"uint256\",\"components\":[]},{\"internalType\":\"bool\",\"name\":\"isWithdrawn\",\"type\":\"bool\",\"components\":[]}]},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"secretHash_\",\"type\":\"bytes32\",\"components\":[]}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"restore\",\"outputs\":[]},{\"inputs\":[{\"internalType\":\"bytes32[4]\",\"name\":\"secret_\",\"type\":\"bytes32[4]\",\"components\":[]}],\"stateMutability\":\"nonpayable\",\"type\":\"function\",\"name\":\"withdraw\",\"outputs\":[]}]";
     ///The parsed JSON ABI of the contract.
-    pub static DEPOSITOR_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(||
-    ::ethers::core::utils::__serde_json::from_str(__ABI).expect("ABI is always valid"));
+    pub static DEPOSITOR_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> =
+        ::ethers::contract::Lazy::new(|| {
+            ::ethers::core::utils::__serde_json::from_str(__ABI).expect("ABI is always valid")
+        });
     pub struct Depositor<M>(::ethers::contract::Contract<M>);
     impl<M> ::core::clone::Clone for Depositor<M> {
         fn clone(&self) -> Self {
@@ -34,7 +36,9 @@ pub mod depositor {
     }
     impl<M> ::core::fmt::Debug for Depositor<M> {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-            f.debug_tuple(stringify!(Depositor)).field(&self.address()).finish()
+            f.debug_tuple(stringify!(Depositor))
+                .field(&self.address())
+                .finish()
         }
     }
     impl<M: ::ethers::providers::Middleware> Depositor<M> {
@@ -44,13 +48,11 @@ pub mod depositor {
             address: T,
             client: ::std::sync::Arc<M>,
         ) -> Self {
-            Self(
-                ::ethers::contract::Contract::new(
-                    address.into(),
-                    DEPOSITOR_ABI.clone(),
-                    client,
-                ),
-            )
+            Self(::ethers::contract::Contract::new(
+                address.into(),
+                DEPOSITOR_ABI.clone(),
+                client,
+            ))
         }
         ///Calls the contract's `MIN_LOCK_TIME` (0x3ff03207) function
         pub fn min_lock_time(
@@ -110,46 +112,30 @@ pub mod depositor {
         ///Gets the contract's `Deposited` event
         pub fn deposited_filter(
             &self,
-        ) -> ::ethers::contract::builders::Event<
-            ::std::sync::Arc<M>,
-            M,
-            DepositedFilter,
-        > {
+        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, DepositedFilter> {
             self.0.event()
         }
         ///Gets the contract's `Restored` event
         pub fn restored_filter(
             &self,
-        ) -> ::ethers::contract::builders::Event<
-            ::std::sync::Arc<M>,
-            M,
-            RestoredFilter,
-        > {
+        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, RestoredFilter> {
             self.0.event()
         }
         ///Gets the contract's `Withdrawn` event
         pub fn withdrawn_filter(
             &self,
-        ) -> ::ethers::contract::builders::Event<
-            ::std::sync::Arc<M>,
-            M,
-            WithdrawnFilter,
-        > {
+        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, WithdrawnFilter> {
             self.0.event()
         }
         /// Returns an `Event` builder for all the events of this contract.
         pub fn events(
             &self,
-        ) -> ::ethers::contract::builders::Event<
-            ::std::sync::Arc<M>,
-            M,
-            DepositorEvents,
-        > {
-            self.0.event_with_filter(::core::default::Default::default())
+        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, DepositorEvents> {
+            self.0
+                .event_with_filter(::core::default::Default::default())
         }
     }
-    impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>>
-    for Depositor<M> {
+    impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>> for Depositor<M> {
         fn from(contract: ::ethers::contract::Contract<M>) -> Self {
             Self::new(contract.address(), contract.client())
         }
@@ -163,7 +149,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[etherror(name = "DepositAlreadyExists", abi = "DepositAlreadyExists(bytes32)")]
     pub struct DepositAlreadyExists {
@@ -178,7 +164,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[etherror(
         name = "DepositAlreadyWithdrawn",
@@ -196,7 +182,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[etherror(name = "DepositDoesNotExist", abi = "DepositDoesNotExist(bytes32)")]
     pub struct DepositDoesNotExist {
@@ -211,7 +197,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[etherror(name = "FailedInnerCall", abi = "FailedInnerCall()")]
     pub struct FailedInnerCall;
@@ -224,7 +210,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[etherror(name = "LockTimeTooShort", abi = "LockTimeTooShort(uint256,uint256)")]
     pub struct LockTimeTooShort {
@@ -240,9 +226,12 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
-    #[etherror(name = "TimeLockNotExpired", abi = "TimeLockNotExpired(uint256,uint256)")]
+    #[etherror(
+        name = "TimeLockNotExpired",
+        abi = "TimeLockNotExpired(uint256,uint256)"
+    )]
     pub struct TimeLockNotExpired {
         pub current_time: ::ethers::core::types::U256,
         pub lock_time: ::ethers::core::types::U256,
@@ -256,7 +245,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[etherror(name = "ZeroAddressNotAllowed", abi = "ZeroAddressNotAllowed()")]
     pub struct ZeroAddressNotAllowed;
@@ -269,7 +258,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[etherror(name = "ZeroDepositAmount", abi = "ZeroDepositAmount()")]
     pub struct ZeroDepositAmount;
@@ -293,49 +282,45 @@ pub mod depositor {
             data: impl AsRef<[u8]>,
         ) -> ::core::result::Result<Self, ::ethers::core::abi::AbiError> {
             let data = data.as_ref();
-            if let Ok(decoded) = <::std::string::String as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) =
+                <::std::string::String as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::RevertString(decoded));
             }
-            if let Ok(decoded) = <DepositAlreadyExists as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) =
+                <DepositAlreadyExists as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::DepositAlreadyExists(decoded));
             }
-            if let Ok(decoded) = <DepositAlreadyWithdrawn as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) =
+                <DepositAlreadyWithdrawn as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::DepositAlreadyWithdrawn(decoded));
             }
-            if let Ok(decoded) = <DepositDoesNotExist as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) =
+                <DepositDoesNotExist as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::DepositDoesNotExist(decoded));
             }
-            if let Ok(decoded) = <FailedInnerCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) = <FailedInnerCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::FailedInnerCall(decoded));
             }
-            if let Ok(decoded) = <LockTimeTooShort as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) = <LockTimeTooShort as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::LockTimeTooShort(decoded));
             }
-            if let Ok(decoded) = <TimeLockNotExpired as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) =
+                <TimeLockNotExpired as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::TimeLockNotExpired(decoded));
             }
-            if let Ok(decoded) = <ZeroAddressNotAllowed as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) =
+                <ZeroAddressNotAllowed as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::ZeroAddressNotAllowed(decoded));
             }
-            if let Ok(decoded) = <ZeroDepositAmount as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) = <ZeroDepositAmount as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::ZeroDepositAmount(decoded));
             }
             Err(::ethers::core::abi::Error::InvalidData.into())
@@ -353,21 +338,15 @@ pub mod depositor {
                 Self::DepositDoesNotExist(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
-                Self::FailedInnerCall(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::LockTimeTooShort(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
+                Self::FailedInnerCall(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::LockTimeTooShort(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::TimeLockNotExpired(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
                 Self::ZeroAddressNotAllowed(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
-                Self::ZeroDepositAmount(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
+                Self::ZeroDepositAmount(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::RevertString(s) => ::ethers::core::abi::AbiEncode::encode(s),
             }
         }
@@ -377,35 +356,39 @@ pub mod depositor {
             match selector {
                 [0x08, 0xc3, 0x79, 0xa0] => true,
                 _ if selector
-                    == <DepositAlreadyExists as ::ethers::contract::EthError>::selector() => {
+                    == <DepositAlreadyExists as ::ethers::contract::EthError>::selector() =>
+                {
                     true
                 }
                 _ if selector
-                    == <DepositAlreadyWithdrawn as ::ethers::contract::EthError>::selector() => {
+                    == <DepositAlreadyWithdrawn as ::ethers::contract::EthError>::selector() =>
+                {
                     true
                 }
                 _ if selector
-                    == <DepositDoesNotExist as ::ethers::contract::EthError>::selector() => {
+                    == <DepositDoesNotExist as ::ethers::contract::EthError>::selector() =>
+                {
+                    true
+                }
+                _ if selector == <FailedInnerCall as ::ethers::contract::EthError>::selector() => {
+                    true
+                }
+                _ if selector == <LockTimeTooShort as ::ethers::contract::EthError>::selector() => {
                     true
                 }
                 _ if selector
-                    == <FailedInnerCall as ::ethers::contract::EthError>::selector() => {
+                    == <TimeLockNotExpired as ::ethers::contract::EthError>::selector() =>
+                {
                     true
                 }
                 _ if selector
-                    == <LockTimeTooShort as ::ethers::contract::EthError>::selector() => {
+                    == <ZeroAddressNotAllowed as ::ethers::contract::EthError>::selector() =>
+                {
                     true
                 }
                 _ if selector
-                    == <TimeLockNotExpired as ::ethers::contract::EthError>::selector() => {
-                    true
-                }
-                _ if selector
-                    == <ZeroAddressNotAllowed as ::ethers::contract::EthError>::selector() => {
-                    true
-                }
-                _ if selector
-                    == <ZeroDepositAmount as ::ethers::contract::EthError>::selector() => {
+                    == <ZeroDepositAmount as ::ethers::contract::EthError>::selector() =>
+                {
                     true
                 }
                 _ => false,
@@ -415,23 +398,13 @@ pub mod depositor {
     impl ::core::fmt::Display for DepositorErrors {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
-                Self::DepositAlreadyExists(element) => {
-                    ::core::fmt::Display::fmt(element, f)
-                }
-                Self::DepositAlreadyWithdrawn(element) => {
-                    ::core::fmt::Display::fmt(element, f)
-                }
-                Self::DepositDoesNotExist(element) => {
-                    ::core::fmt::Display::fmt(element, f)
-                }
+                Self::DepositAlreadyExists(element) => ::core::fmt::Display::fmt(element, f),
+                Self::DepositAlreadyWithdrawn(element) => ::core::fmt::Display::fmt(element, f),
+                Self::DepositDoesNotExist(element) => ::core::fmt::Display::fmt(element, f),
                 Self::FailedInnerCall(element) => ::core::fmt::Display::fmt(element, f),
                 Self::LockTimeTooShort(element) => ::core::fmt::Display::fmt(element, f),
-                Self::TimeLockNotExpired(element) => {
-                    ::core::fmt::Display::fmt(element, f)
-                }
-                Self::ZeroAddressNotAllowed(element) => {
-                    ::core::fmt::Display::fmt(element, f)
-                }
+                Self::TimeLockNotExpired(element) => ::core::fmt::Display::fmt(element, f),
+                Self::ZeroAddressNotAllowed(element) => ::core::fmt::Display::fmt(element, f),
                 Self::ZeroDepositAmount(element) => ::core::fmt::Display::fmt(element, f),
                 Self::RevertString(s) => ::core::fmt::Display::fmt(s, f),
             }
@@ -490,7 +463,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethevent(
         name = "Deposited",
@@ -513,7 +486,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethevent(name = "Restored", abi = "Restored(address,uint256,bytes32)")]
     pub struct RestoredFilter {
@@ -530,7 +503,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethevent(
         name = "Withdrawn",
@@ -599,7 +572,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethcall(name = "MIN_LOCK_TIME", abi = "MIN_LOCK_TIME()")]
     pub struct MinLockTimeCall;
@@ -612,7 +585,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethcall(name = "deposit", abi = "deposit(address,bytes32,uint256)")]
     pub struct DepositCall {
@@ -629,7 +602,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethcall(name = "deposits", abi = "deposits(bytes32)")]
     pub struct DepositsCall(pub [u8; 32]);
@@ -642,7 +615,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethcall(name = "restore", abi = "restore(bytes32)")]
     pub struct RestoreCall {
@@ -657,7 +630,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethcall(name = "withdraw", abi = "withdraw(bytes32[4])")]
     pub struct WithdrawCall {
@@ -677,29 +650,19 @@ pub mod depositor {
             data: impl AsRef<[u8]>,
         ) -> ::core::result::Result<Self, ::ethers::core::abi::AbiError> {
             let data = data.as_ref();
-            if let Ok(decoded) = <MinLockTimeCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) = <MinLockTimeCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::MinLockTime(decoded));
             }
-            if let Ok(decoded) = <DepositCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) = <DepositCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::Deposit(decoded));
             }
-            if let Ok(decoded) = <DepositsCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) = <DepositsCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::Deposits(decoded));
             }
-            if let Ok(decoded) = <RestoreCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) = <RestoreCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::Restore(decoded));
             }
-            if let Ok(decoded) = <WithdrawCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) = <WithdrawCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::Withdraw(decoded));
             }
             Err(::ethers::core::abi::Error::InvalidData.into())
@@ -708,17 +671,11 @@ pub mod depositor {
     impl ::ethers::core::abi::AbiEncode for DepositorCalls {
         fn encode(self) -> Vec<u8> {
             match self {
-                Self::MinLockTime(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
+                Self::MinLockTime(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::Deposit(element) => ::ethers::core::abi::AbiEncode::encode(element),
-                Self::Deposits(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
+                Self::Deposits(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::Restore(element) => ::ethers::core::abi::AbiEncode::encode(element),
-                Self::Withdraw(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
+                Self::Withdraw(element) => ::ethers::core::abi::AbiEncode::encode(element),
             }
         }
     }
@@ -767,7 +724,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     pub struct MinLockTimeReturn(pub ::ethers::core::types::U256);
     ///Container type for all return fields from the `deposits` function with signature `deposits(bytes32)` and selector `0x3d4dff7b`
@@ -779,7 +736,7 @@ pub mod depositor {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     pub struct DepositsReturn {
         pub sender: ::ethers::core::types::Address,
