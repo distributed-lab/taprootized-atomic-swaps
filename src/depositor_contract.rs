@@ -167,11 +167,14 @@ pub mod depositor {
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("secret_"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::FixedBytes(
-                                        32usize,
+                                    kind: ::ethers::core::abi::ethabi::ParamType::FixedArray(
+                                        ::std::boxed::Box::new(
+                                            ::ethers::core::abi::ethabi::ParamType::FixedBytes(32usize),
+                                        ),
+                                        4usize,
                                     ),
                                     internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("bytes32"),
+                                        ::std::borrow::ToOwned::to_owned("bytes32[4]"),
                                     ),
                                 },
                             ],
@@ -275,8 +278,11 @@ pub mod depositor {
                                 },
                                 ::ethers::core::abi::ethabi::EventParam {
                                     name: ::std::borrow::ToOwned::to_owned("secret"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::FixedBytes(
-                                        32usize,
+                                    kind: ::ethers::core::abi::ethabi::ParamType::FixedArray(
+                                        ::std::boxed::Box::new(
+                                            ::ethers::core::abi::ethabi::ParamType::FixedBytes(32usize),
+                                        ),
+                                        4usize,
                                     ),
                                     indexed: false,
                                 },
@@ -534,13 +540,13 @@ pub mod depositor {
                 .method_hash([32, 94, 141, 83], secret_hash)
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `withdraw` (0x8e19899e) function
+        ///Calls the contract's `withdraw` (0x25403d1f) function
         pub fn withdraw(
             &self,
-            secret: [u8; 32],
+            secret: [[u8; 32]; 4],
         ) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
-                .method_hash([142, 25, 137, 158], secret)
+                .method_hash([37, 64, 61, 31], secret)
                 .expect("method not found (this should never happen)")
         }
         ///Gets the contract's `Deposited` event
@@ -968,12 +974,15 @@ pub mod depositor {
         Eq,
         Hash
     )]
-    #[ethevent(name = "Withdrawn", abi = "Withdrawn(address,uint256,bytes32,bytes32)")]
+    #[ethevent(
+        name = "Withdrawn",
+        abi = "Withdrawn(address,uint256,bytes32[4],bytes32)"
+    )]
     pub struct WithdrawnFilter {
         #[ethevent(indexed)]
         pub recipient: ::ethers::core::types::Address,
         pub amount: ::ethers::core::types::U256,
-        pub secret: [u8; 32],
+        pub secret: [[u8; 32]; 4],
         pub secret_hash: [u8; 32],
     }
     ///Container type for all of the contract's events
@@ -1081,7 +1090,7 @@ pub mod depositor {
     pub struct RestoreCall {
         pub secret_hash: [u8; 32],
     }
-    ///Container type for all input parameters for the `withdraw` function with signature `withdraw(bytes32)` and selector `0x8e19899e`
+    ///Container type for all input parameters for the `withdraw` function with signature `withdraw(bytes32[4])` and selector `0x25403d1f`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1092,9 +1101,9 @@ pub mod depositor {
         Eq,
         Hash
     )]
-    #[ethcall(name = "withdraw", abi = "withdraw(bytes32)")]
+    #[ethcall(name = "withdraw", abi = "withdraw(bytes32[4])")]
     pub struct WithdrawCall {
-        pub secret: [u8; 32],
+        pub secret: [[u8; 32]; 4],
     }
     ///Container type for all of the contract's call
     #[derive(Clone, ::ethers::contract::EthAbiType, Debug, PartialEq, Eq, Hash)]
