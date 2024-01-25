@@ -51,7 +51,7 @@ const PUBSIGNALS_SECRET_HASH_INDEX: usize = 8;
 
 /// Number of the BDK wallet's sync tries to find the taproot atomic-swap transaction on-chain that
 /// has been published by a counterparty.
-const MAX_NUMBER_OF_ATTEMPTS_TO_SYNC: usize = 100;
+const MAX_NUMBER_OF_ATTEMPTS_TO_SYNC: usize = 150;
 
 /// Delay between attempts to sync the BDK wallet to find the taproot atomic-swap transaction.
 const DELAY_BETWEEN_SYNC_ATTEMPT_SEC: u64 = 5;

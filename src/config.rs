@@ -1,5 +1,6 @@
 use bdk::bitcoin::secp256k1::{All, Secp256k1, SecretKey as SecpSecretKey};
 use bdk::bitcoin::{Network as BitcoinNetwork, PrivateKey as BitcoinPrivateKey};
+use bdk::blockchain::rpc::RpcSyncParams;
 use bdk::blockchain::{
     rpc::Auth as BdkRpcAuth, ConfigurableBlockchain, RpcBlockchain as BitcoinClient,
     RpcConfig as BdkRpcConfig,
@@ -81,17 +82,22 @@ impl Config {
         let wallet_name =
             wallet_name_from_descriptor(descriptor!(wpkh(private_key))?, None, network, secp_ctx)?;
 
+        let rpc_sync_params = RpcSyncParams {
+            start_time: self.bitcoin_rpc.start_block_timestamp,
+            ..Default::default()
+        };
+
         let config = BdkRpcConfig {
             url: self.bitcoin_rpc.url.clone(),
             auth: self.bitcoin_rpc.auth.clone(),
             network,
             wallet_name,
-            sync_params: None,
+            sync_params: Some(rpc_sync_params),
         };
 
-        let blockchain = BitcoinClient::from_config(&config)?;
+        let bitcoin_client = BitcoinClient::from_config(&config)?;
 
-        Ok(blockchain)
+        Ok(bitcoin_client)
     }
 }
 
@@ -114,6 +120,7 @@ pub struct BitcoinRpcConfig {
     pub url: String,
     pub auth: BdkRpcAuth,
     pub network: BitcoinNetwork,
+    pub start_block_timestamp: u64,
 }
 
 #[derive(Clone, serde::Deserialize)]

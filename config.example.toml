@@ -10,9 +10,10 @@ ethereum_timelock_secs = 3600 # 60 minutes MUST be less than bitcoin_csv_delay
 
 [bitcoin_rpc]
 # You can use `nigiri` to run a local Bitcoin regtest node
-url     = "http://127.0.0.1:18443"
-auth    = { username = "admin1", password = "123" }
-network = "regtest"
+url                   = "http://127.0.0.1:18443"
+auth                  = { username = "admin1", password = "123" }
+network               = "regtest"
+start_block_timestamp = 1706196909
 
 [circom]
 witnes_calculator_path = "./atomic_swap.dev/atomic_swap.wasm"
