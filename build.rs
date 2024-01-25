@@ -22,12 +22,8 @@ fn compile_depositor_bindings(cargo_manifest_path: String) {
     let abi_src_path = format!("{}/{}", cargo_manifest_path, DEPOSITOR_ABI_ARTIFACTS_PATH);
 
     // Check if JSON ABI file of the Depositor contract is exists.
-    let if_json_abi_exists = Path::new(&abi_src_path).exists();
-
-    if !if_json_abi_exists {
-        panic!(
-            "\n=> JSON ABI file of the Depositor contract is absent.\n=> Use `npm install && npm run compile` in `<repository_root>/contracts` to compile it.\n"
-        );
+    if !Path::new(&abi_src_path).exists() {
+        return;
     }
 
     let depositor_bindings_path =
