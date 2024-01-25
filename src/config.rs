@@ -8,7 +8,6 @@ use bdk::database::MemoryDatabase;
 use bdk::wallet::wallet_name_from_descriptor;
 use bdk::{descriptor, SyncOptions};
 use ethers::providers::{Http, Provider as EthereumClient};
-use ethers::signers::LocalWallet as EthereumWallet;
 use ethers::types::Address as EthereumAddress;
 use eyre::{Context, Result};
 use std::path::PathBuf;
@@ -33,14 +32,6 @@ pub struct Config {
 }
 
 impl Config {
-    /// Returns the [`ethers::signers::LocalWallet`] that can be used to sign transactions for the
-    /// Ethereum network.
-    pub fn ethereum_wallet(secret_key: &[u8]) -> Result<EthereumWallet> {
-        let wallet = EthereumWallet::from_bytes(secret_key)?;
-
-        Ok(wallet)
-    }
-
     /// Return the [`BitcoinWallet`] that can be used to operate with UTXOs and the
     /// [`BitcoinWalletClient`] for retrieving the available UTXOs from the Bitcoin network.
     pub fn bitcoin_wallet(

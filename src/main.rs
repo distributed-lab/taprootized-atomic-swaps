@@ -10,6 +10,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::{env, thread};
 
+use bdk::bitcoin::hashes::hex::ToHex;
 use bdk::bitcoin::secp256k1::{All, Secp256k1};
 use bdk::bitcoin::{secp256k1, Address as BitcoinAddress, Txid as BitcoinTxid};
 use bdk::blockchain::{Blockchain, RpcBlockchain as BitcoinClient};
@@ -21,10 +22,11 @@ use bdk::miniscript::Descriptor;
 use bdk::wallet::AddressIndex;
 use bdk::{bitcoin, SignOptions, SyncOptions, Wallet as BitcoinWallet, Wallet};
 use ethers::prelude::{Http, SignerMiddleware};
-use ethers::providers::Provider as EthereumClient;
+use ethers::providers::{Middleware, Provider as EthereumClient};
 use ethers::signers::{LocalWallet as EthereumWallet, Signer};
 use ethers::types::U256;
 use ethers::types::{Address as EthereumAddress, TxHash};
+use ethers::utils::Units::Gwei;
 use eyre::{eyre, Context, Result};
 use num::{bigint::Sign, BigInt, BigUint, One, ToPrimitive, Zero};
 use rand::rngs::ThreadRng;
@@ -84,7 +86,7 @@ pub struct SwapParticipant {
 }
 
 impl SwapParticipant {
-    pub fn from_config(
+    pub async fn from_config(
         name: String,
         config: &Config,
         wallets_config: &WalletsConfig,
@@ -96,9 +98,11 @@ impl SwapParticipant {
             .ethereum_client()
             .wrap_err("failed to initialize Ethereum RPC client")?;
 
+        let chain_id = ethereum_client.get_chainid().await?;
+
         let ethereum_wallet =
-            Config::ethereum_wallet(&wallets_config.ethereum_private_key.secret_bytes())
-                .wrap_err("failed to intialize Ethereum wallet")?;
+            EthereumWallet::from_bytes(&wallets_config.ethereum_private_key.secret_bytes())?
+                .with_chain_id(chain_id.as_u64());
 
         let (bitcoin_wallet, bitcoin_client) = config
             .bitcoin_wallet(secp_ctx, wallets_config.bitcoin_private_key)
@@ -187,8 +191,10 @@ impl SwapParticipant {
         let public_inputs: Vec<String> = serde_json::from_str(pubsignals_json.as_str())?;
         let (swap_pubkey, swap_secret_hash) = parse_atomic_swap_proof_pubsignals(public_inputs)?;
 
+        println!("| Swap secret's hash: {}", hex::encode(swap_secret_hash));
+
         let swap_transaction_found = self
-            .check_atomic_swap_tx_appeared(swap_pubkey, counterparty_bitcoin_pubkey)
+            .check_atomic_swap_tx_appeared_on_bitcoin(swap_pubkey, counterparty_bitcoin_pubkey)
             .wrap_err("failed to check if atomic-swap transaction appeared in Bitcoin")?;
 
         if !swap_transaction_found {
@@ -203,7 +209,7 @@ impl SwapParticipant {
 
         println!(
             "| Atomic-swap transaction has been sent to Ethereum: {}",
-            tx_id
+            tx_id.to_hex()
         );
 
         Ok(())
@@ -231,9 +237,11 @@ async fn main() -> Result<()> {
 
     let alice =
         SwapParticipant::from_config("Alice".to_string(), &cfg, &cfg.alice_config, &secp_ctx)
+            .await
             .wrap_err("failed to initialize Alice")?;
 
     let bob = SwapParticipant::from_config("Bob".to_string(), &cfg, &cfg.bob_config, &secp_ctx)
+        .await
         .wrap_err("failed to initialize Bob")?;
 
     let (proof, pubsignals) = alice.new_atomic_swap(
@@ -270,6 +278,8 @@ impl SwapParticipant {
             WitnessCalculator::new(self.circom.witnes_calculator_path.clone())
                 .wrap_err("failed to load witness calculator")?;
 
+        // This process takes most of the time of the proof generation because of WASM. The C
+        // binding can be used to speed it up.
         let witness = witness_calculator
             .calculate_witness(prover_inputs, true)
             .wrap_err("failed to calculate witness")?;
@@ -317,12 +327,13 @@ impl SwapParticipant {
 
         let contract = DepositorContract::new(self.atomic_swap_contract_address, signer);
 
+        let wei_to_send = U256::from(self.swap_params.gwei_to_swap).mul(10u32.pow(Gwei.as_num()));
         let mut contract_call = contract.deposit(
             counterparty_ethereum_address,
             swap_secret_hash,
             U256::from(self.swap_params.ethereum_timelock_secs),
         );
-        contract_call.tx.set_value(self.swap_params.gwei_to_swap);
+        contract_call.tx.set_value(wei_to_send);
         let pending_tx = contract_call.send().await?;
 
         Ok(pending_tx.tx_hash())
@@ -397,7 +408,7 @@ impl SwapParticipant {
         Ok(txid)
     }
 
-    fn check_atomic_swap_tx_appeared(
+    fn check_atomic_swap_tx_appeared_on_bitcoin(
         &self,
         swap_pubkey: secp256k1::PublicKey,
         revocation_pubkey_raw: secp256k1::PublicKey,
