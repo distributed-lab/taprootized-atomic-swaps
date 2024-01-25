@@ -19,10 +19,6 @@ fn main() {
 }
 
 fn compile_depositor_bindings(cargo_manifest_path: String) {
-    if env::var("UPDATE_DEPOSITOR_BINDINGS").is_err() {
-        return;
-    }
-
     let abi_src_path = format!("{}/{}", cargo_manifest_path, DEPOSITOR_ABI_ARTIFACTS_PATH);
 
     // Check if JSON ABI file of the Depositor contract is exists.
