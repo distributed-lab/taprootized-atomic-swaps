@@ -2,6 +2,12 @@ atomic_swap_contract_address = "0x3c9206e77C828FE30c7CC5747AD925c4F459eb72"
 # You can use `ganache` to run a local Ethereum node
 ethereum_rpc_url             = "http://127.0.0.1:8545"
 
+[swap_params]
+sats_to_swap           = 125000
+gwei_to_swap           = 2500000
+bitcoin_csv_delay      = 6    # 60 minutes MUST be greater than ethereum_timelock_secs
+ethereum_timelock_secs = 2400 # 40 minutes MUST be less than bitcoin_csv_delay
+
 [bitcoin_rpc]
 # You can use `nigiri` to run a local Bitcoin regtest node
 url     = "http://127.0.0.1:18443"

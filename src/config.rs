@@ -24,8 +24,7 @@ pub struct Config {
     pub bitcoin_rpc: BitcoinRpcConfig,
     pub circom: CircomConfig,
 
-    pub sats_to_swap: u64,
-    pub gwei_to_swap: u64,
+    pub swap_params: SwapParams,
 
     #[serde(rename = "alice")]
     pub alice_config: WalletsConfig,
@@ -104,6 +103,14 @@ impl Config {
 
         Ok(blockchain)
     }
+}
+
+#[derive(Clone, serde::Deserialize)]
+pub struct SwapParams {
+    pub sats_to_swap: u64,
+    pub gwei_to_swap: u64,
+    pub bitcoin_csv_delay: u32,
+    pub ethereum_timelock_secs: u64,
 }
 
 #[derive(serde::Deserialize)]
