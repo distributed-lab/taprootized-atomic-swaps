@@ -1,7 +1,7 @@
 extern crate config as exconfig;
 
 use bdk::bitcoin::secp256k1::{All, Secp256k1, SecretKey};
-use bdk::bitcoin::{Address, PublicKey};
+use bdk::bitcoin::{secp256k1, Address, PublicKey};
 use bdk::bitcoincore_rpc::Client as BitcoinClient;
 use bdk::blockchain::RpcBlockchain as BitcoinWalletClient;
 use bdk::database::MemoryDatabase;
@@ -9,16 +9,17 @@ use ethers::prelude::Http;
 use ethers::providers::Provider as EthereumClient;
 use ethers::signers::{LocalWallet as EthereumWallet, Signer};
 use ethers::types::Address as EthereumAddress;
-use eyre::{Context, Result};
-use num::{bigint::Sign, BigInt, ToPrimitive, Zero};
+use eyre::{eyre, Context, Result};
+use num::{bigint::Sign, BigInt, One, ToPrimitive, Zero};
 use rand::rngs::ThreadRng;
 use rapidsnark::{groth16_prover, groth16_verifier};
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::Read;
-use std::ops::Div;
+use std::ops::{Add, Div, Mul};
 use std::path::PathBuf;
+use std::str::FromStr;
 use witness_calculator::WitnessCalculator;
 
 mod config;
@@ -83,22 +84,27 @@ impl SwapParticipant {
         })
     }
 
-    pub fn new_atomic_swap(&self, rng: &mut ThreadRng) -> Result<(String, String)> {
+    pub fn new_atomic_swap(
+        &self,
+        rng: &mut ThreadRng,
+        secp_ctx: &Secp256k1<All>,
+    ) -> Result<(String, String)> {
         println!("\n{} starts atomic-swap", self.name);
 
         let swap_secret = SecretKey::new(rng);
 
-        println!("Swap secret: {}", swap_secret.display_secret());
+        println!("Swap k secret: {}", swap_secret.display_secret());
+        println!("Swap k public: {}", swap_secret.public_key(secp_ctx));
 
         let swap_secret_bigint = BigInt::from_bytes_be(Sign::Plus, &swap_secret.secret_bytes());
-        let broken_swap_secret_bigint = u256_to_u64array(swap_secret_bigint)
+        let swap_secret_u64array = u256_to_u64array(swap_secret_bigint)
             .expect("Secret is always lseq than u256")
             .iter()
             .map(|val| BigInt::from(*val))
             .collect();
 
         let mut prover_inputs = HashMap::new();
-        prover_inputs.insert("secret".to_string(), broken_swap_secret_bigint);
+        prover_inputs.insert("secret".to_string(), swap_secret_u64array);
 
         println!("Loading wasm...");
 
@@ -129,7 +135,7 @@ impl SwapParticipant {
         Ok(proof)
     }
 
-    pub fn accept_atomic_swap(&self, proof: String, public_inputs: String) -> Result<bool> {
+    pub fn accept_atomic_swap(&self, proof: String, public_inputs_json: String) -> Result<()> {
         println!("\n{} accepts atomic-swap", self.name);
         println!("Loading verification key...");
 
@@ -145,16 +151,19 @@ impl SwapParticipant {
         let is_proof_valid = groth16_verifier(
             &verification_key,
             proof.as_bytes(),
-            public_inputs.as_bytes(),
+            public_inputs_json.as_bytes(),
         )
         .wrap_err("failed to verify proof")?;
 
         if !is_proof_valid {
-            println!("Proof is invalid");
+            return Err(eyre!("invalid atomic-swap proof"));
         }
 
-        println!();
-        Ok(is_proof_valid)
+        let public_inputs: Vec<String> = serde_json::from_str(public_inputs_json.as_str())?;
+        let swap_pubkey = parse_pubkey_from_pub_signals(public_inputs)?;
+        println!("{}", swap_pubkey.to_string());
+
+        Ok(())
     }
 }
 
@@ -183,20 +192,44 @@ fn main() -> Result<()> {
     let bob = SwapParticipant::from_config("Bob".to_string(), &cfg, &cfg.bob_config, &secp_ctx)
         .wrap_err("failed to initialize Bob")?;
 
-    let (proof, public_inputs) = alice.new_atomic_swap(rng)?;
+    let (proof, public_inputs) = alice.new_atomic_swap(rng, &secp_ctx)?;
 
-    let is_proof_valid = bob.accept_atomic_swap(proof, public_inputs)?;
-    if !is_proof_valid {
-        println!("Atomic-swap failed");
-    }
+    bob.accept_atomic_swap(proof, public_inputs)?;
 
     Ok(())
+}
+
+fn parse_pubkey_from_pub_signals(pubsignals: Vec<String>) -> Result<secp256k1::PublicKey> {
+    let key_x = parse_scalar_from_vec_str(pubsignals[0..4].to_vec())?;
+    let key_y = parse_scalar_from_vec_str(pubsignals[4..8].to_vec())?;
+
+    // Public key prefix 0x04
+    let mut key_raw = vec![0x4];
+    key_raw.append(&mut key_x.to_bytes_be().1.to_vec());
+    key_raw.append(&mut key_y.to_bytes_be().1.to_vec());
+
+    Ok(secp256k1::PublicKey::from_str(
+        hex::encode(key_raw.as_slice()).as_str(),
+    )?)
+}
+
+fn parse_scalar_from_vec_str(scalar_raw: Vec<String>) -> Result<BigInt> {
+    if scalar_raw.len() != 4 {
+        return Err(eyre!("invalid number of scalar parts to parse"));
+    }
+
+    let mut scalar_u64_array = [0u64; 4];
+    for i in 0..4 {
+        scalar_u64_array[i] = u64::from_str(scalar_raw[i].as_str())?
+    }
+
+    Ok(u64array_to_u256(scalar_u64_array))
 }
 
 fn u256_to_u64array(mut input: BigInt) -> Option<[u64; 4]> {
     let mut result = [0u64; 4];
 
-    let u64_max = BigInt::from(u64::MAX);
+    let u64_max = BigInt::from(u64::MAX) + BigInt::one();
 
     for x in result.iter_mut() {
         let rem = input.clone() % u64_max.clone();
@@ -211,9 +244,22 @@ fn u256_to_u64array(mut input: BigInt) -> Option<[u64; 4]> {
     Some(result)
 }
 
+fn u64array_to_u256(input: [u64; 4]) -> BigInt {
+    let mut result = BigInt::from(input[3]);
+
+    let u64_max = BigInt::from(u64::MAX) + BigInt::one();
+
+    for i in (0..=2).rev() {
+        result = result.mul(u64_max.clone());
+        result = result.add(BigInt::from(input[i]));
+    }
+
+    result
+}
+
 #[cfg(test)]
 mod test {
-    use crate::u256_to_u64array;
+    use crate::{u256_to_u64array, u64array_to_u256};
     use num::BigInt;
     use std::str::FromStr;
 
@@ -225,28 +271,32 @@ mod test {
             )
             .unwrap(),
             vec![
-                1015469868109144153,
-                7042290186432306956,
-                10826996139724932949,
-                17982017980625340072,
+                5264901914485981690,
+                2440863701439358041,
+                12221174418977567583,
+                17982017980625340069,
             ],
         );
         do_test_u256_to_u64array(BigInt::from_str("1").unwrap(), vec![1, 0, 0, 0]);
         do_test_u256_to_u64array(BigInt::from_str("0").unwrap(), vec![0, 0, 0, 0]);
         do_test_u256_to_u64array(
             BigInt::from_str("9134136032198266807219851950679215").unwrap(),
-            vec![5858704018890565205, 495162506494374, 0, 0],
+            vec![5858208856384070831, 495162506494374, 0, 0],
         );
     }
 
-    fn do_test_u256_to_u64array(input: BigInt, expect: Vec<u64>) {
-        assert_eq!(expect.len(), 4);
+    fn do_test_u256_to_u64array(expected_u256: BigInt, expected_u64array: Vec<u64>) {
+        assert_eq!(expected_u64array.len(), 4);
 
-        let result = u256_to_u64array(input).unwrap();
+        let u64array = u256_to_u64array(expected_u256.clone()).unwrap();
 
-        assert_eq!(result[0], expect[0]);
-        assert_eq!(result[1], expect[1]);
-        assert_eq!(result[2], expect[2]);
-        assert_eq!(result[3], expect[3]);
+        assert_eq!(u64array[0], expected_u64array[0]);
+        assert_eq!(u64array[1], expected_u64array[1]);
+        assert_eq!(u64array[2], expected_u64array[2]);
+        assert_eq!(u64array[3], expected_u64array[3]);
+
+        let u256 = u64array_to_u256(u64array);
+
+        assert_eq!(u256, expected_u256);
     }
 }

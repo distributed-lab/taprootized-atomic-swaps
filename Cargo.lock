@@ -3212,11 +3212,13 @@ dependencies = [
  "config",
  "ethers",
  "eyre",
+ "hex",
  "num",
  "poseidon-rs",
  "rand 0.8.5",
  "rapidsnark",
  "serde",
+ "serde_json",
  "witness-calculator",
 ]
 
