@@ -40,9 +40,14 @@ describe("Taprootized Atomic Swaps", () => {
 
   function generateSecret(): [string, string] {
     const parts = [1, 2, 3, 4].map(() => ethers.hexlify(ethers.randomBytes(8)));
-    const wholeSecret = "0x" + parts.map((hexString: string) => hexString.replace("0x", "")).join("");
+    const wholeSecret =
+      "0x" +
+      parts
+        .reverse()
+        .map((hexString: string) => hexString.replace("0x", ""))
+        .join("");
 
-    const inputs = parts.map((v) => BigInt(v));
+    const inputs = parts.reverse().map((v) => BigInt(v));
     const secretHash = ethers.toBeHex(Poseidon.hash(inputs), 32);
 
     return [wholeSecret, secretHash];

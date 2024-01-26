@@ -208,6 +208,6 @@ contract Depositor {
         uint256 part3 = ((secret_ >> 64) & 0xFFFFFFFFFFFFFFFF);
         uint256 part4 = (secret_ & 0xFFFFFFFFFFFFFFFF);
 
-        return bytes32(PoseidonUnit4L.poseidon([part1, part2, part3, part4]));
+        return bytes32(PoseidonUnit4L.poseidon([part4, part3, part2, part1]));
     }
 }
