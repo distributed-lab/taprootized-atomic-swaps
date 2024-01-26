@@ -1,12 +1,19 @@
-atomic_swap_contract_address = "0x3c9206e77C828FE30c7CC5747AD925c4F459eb72"
+atomic_swap_contract_address = "0xC44f8853B1288F58B7CA8555208F502C36f87361"
 # You can use `ganache` to run a local Ethereum node
-ethereum_rpc_url             = "http://127.0.0.1:8545"
+ethereum_ws_rpc_url          = "wss://127.0.0.1:8545"
+
+[swap_params]
+sats_to_swap           = 125000
+gwei_to_swap           = 2500000
+bitcoin_csv_delay      = 8    # 80 minutes MUST be greater than ethereum_timelock_secs
+ethereum_timelock_secs = 3600 # 60 minutes MUST be less than bitcoin_csv_delay
 
 [bitcoin_rpc]
 # You can use `nigiri` to run a local Bitcoin regtest node
-url     = "http://127.0.0.1:18443"
-auth    = { username = "admin1", password = "123" }
-network = "regtest"
+url                   = "http://127.0.0.1:18443"
+auth                  = { username = "admin1", password = "123" }
+network               = "regtest"
+start_block_timestamp = 1706196909
 
 [circom]
 witnes_calculator_path = "./atomic_swap.dev/atomic_swap.wasm"

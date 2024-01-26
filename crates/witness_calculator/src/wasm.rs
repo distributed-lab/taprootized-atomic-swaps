@@ -68,7 +68,7 @@ impl CircomWasm for Wasm {
 
     fn get_raw_prime(&self, store: &mut Store) -> Result<()> {
         let func = self.func("getRawPrime");
-        func.call(store, &mut [])?;
+        func.call(store, &[])?;
         Ok(())
     }
 
