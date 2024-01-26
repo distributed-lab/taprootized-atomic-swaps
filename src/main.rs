@@ -177,6 +177,8 @@ impl SwapParticipant {
         let swap_secret = secp256k1::SecretKey::new(rng);
         self.swap_secret = Some(swap_secret.secret_bytes());
 
+        dbg!(U256::from_big_endian(&swap_secret.secret_bytes()));
+
         println!("| Swap k secret: {}", swap_secret.display_secret());
 
         println!("| Calculating zero-knowledge proof...");
@@ -305,11 +307,7 @@ impl SwapParticipant {
             let withdrawal = log?;
 
             if withdrawal.secret_hash == swap_secret_hash {
-                swap_secret = u64array_to_u256(u256array_to_u64array(withdrawal.secret))
-                    .to_bytes_be()
-                    .1
-                    .try_into()
-                    .map_err(|_| eyre!("failed to convert swap secret from slice to array"))?;
+                withdrawal.secret.to_big_endian(&mut swap_secret);
                 break;
             }
         }
@@ -451,13 +449,8 @@ impl SwapParticipant {
     async fn withdraw_money_from_swap_contract(&self, swap_secret: [u8; 32]) -> Result<TxHash> {
         let contract = self.deposit_contract();
 
-        let swap_secret_u64array =
-            u256_to_u64array(BigInt::from_bytes_be(Sign::Plus, &swap_secret))
-                .ok_or(eyre!("failed to convert swap secret to bigint"))?;
-
-        let swap_secret_u256array = u64array_to_u256array(swap_secret_u64array);
-
-        let contract_call = contract.withdraw(swap_secret_u256array);
+        dbg!(U256::from(swap_secret).to_string());
+        let contract_call = contract.withdraw(U256::from(swap_secret));
         let pending_tx = contract_call.send().await?;
 
         Ok(pending_tx.tx_hash())
@@ -662,39 +655,6 @@ impl SwapParticipant {
 
         Ok(false)
     }
-}
-
-fn u64array_to_u256array(src: [u64; 4]) -> [[u8; 32]; 4] {
-    let mut output: [[u8; 32]; 4] = [[0; 32]; 4];
-
-    for (i, &num) in src.iter().enumerate() {
-        // Convert each u64 to an array of u8
-        let bytes = num.to_be_bytes(); // Use to_le_bytes() for little-endian
-
-        // Place the bytes at the end of each [u8; 32] array
-        output[i][24..32].copy_from_slice(&bytes);
-    }
-
-    output
-}
-
-fn u256array_to_u64array(src: [[u8; 32]; 4]) -> [u64; 4] {
-    let mut output: [u64; 4] = [0; 4];
-
-    for (i, arr) in src.iter().enumerate() {
-        // Extract the last 8 bytes from each [u8; 32] array
-        let bytes = &arr[24..32];
-
-        // Convert the 8-byte slice into a u64
-        let num = u64::from_be_bytes([
-            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
-        ]);
-
-        // Store the result in the output array
-        output[i] = num;
-    }
-
-    output
 }
 
 fn parse_atomic_swap_proof_pubsignals(
