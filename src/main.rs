@@ -11,6 +11,7 @@ use std::time::Duration;
 use std::{env, thread};
 
 use bdk::bitcoin::hashes::hex::ToHex;
+use bdk::bitcoin::network::message_network::RejectReason::Fee;
 use bdk::bitcoin::secp256k1::{All, Scalar, Secp256k1};
 use bdk::bitcoin::{secp256k1, Address as BitcoinAddress, Txid as BitcoinTxid};
 use bdk::blockchain::{Blockchain, RpcBlockchain as BitcoinClient};
@@ -20,7 +21,9 @@ use bdk::miniscript::descriptor::TapTree;
 use bdk::miniscript::policy::Concrete;
 use bdk::miniscript::Descriptor;
 use bdk::wallet::AddressIndex;
-use bdk::{bitcoin, KeychainKind, SignOptions, SyncOptions, Wallet as BitcoinWallet, Wallet};
+use bdk::{
+    bitcoin, FeeRate, KeychainKind, SignOptions, SyncOptions, Wallet as BitcoinWallet, Wallet,
+};
 use ethers::prelude::{LocalWallet, SignerMiddleware};
 use ethers::providers::{Middleware, Provider as EthereumClient, Provider, StreamExt, Ws};
 use ethers::signers::{LocalWallet as EthereumWallet, Signer};
@@ -176,8 +179,6 @@ impl SwapParticipant {
 
         let swap_secret = secp256k1::SecretKey::new(rng);
         self.swap_secret = Some(swap_secret.secret_bytes());
-
-        dbg!(U256::from_big_endian(&swap_secret.secret_bytes()));
 
         println!("| Swap k secret: {}", swap_secret.display_secret());
 
@@ -449,7 +450,6 @@ impl SwapParticipant {
     async fn withdraw_money_from_swap_contract(&self, swap_secret: [u8; 32]) -> Result<TxHash> {
         let contract = self.deposit_contract();
 
-        dbg!(U256::from(swap_secret).to_string());
         let contract_call = contract.withdraw(U256::from(swap_secret));
         let pending_tx = contract_call.send().await?;
 
