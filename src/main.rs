@@ -51,7 +51,7 @@ const PUBSIGNALS_SECRET_HASH_INDEX: usize = 8;
 
 /// Number of the BDK wallet's sync tries to find the taproot atomic-swap transaction on-chain that
 /// has been published by a counterparty.
-const MAX_NUMBER_OF_ATTEMPTS_TO_SYNC: usize = 150;
+const MAX_NUMBER_OF_ATTEMPTS_TO_SYNC: usize = 300;
 
 /// Delay between attempts to sync the BDK wallet to find the taproot atomic-swap transaction.
 const DELAY_BETWEEN_SYNC_ATTEMPT_SEC: u64 = 5;
@@ -499,7 +499,13 @@ impl SwapParticipant {
                 self.bitcoin_wallet.network(),
             )?;
 
+            let feerate = self
+                .bitcoin_client
+                .estimate_fee(2)
+                .wrap_err("failed to estimate fee")?;
+
             builder
+                .fee_rate(feerate)
                 .drain_wallet()
                 .drain_to(recepient_address.script_pubkey())
                 .policy_path(path, KeychainKind::External);
@@ -589,7 +595,15 @@ impl SwapParticipant {
 
         let (mut psbt, _details) = {
             let mut tx_builder = self.bitcoin_wallet.build_tx();
-            tx_builder.add_recipient(address.script_pubkey(), sats_amount);
+
+            let feerate = self
+                .bitcoin_client
+                .estimate_fee(2)
+                .wrap_err("failed to estimate fee")?;
+
+            tx_builder
+                .fee_rate(feerate)
+                .add_recipient(address.script_pubkey(), sats_amount);
             tx_builder.finish()?
         };
 
