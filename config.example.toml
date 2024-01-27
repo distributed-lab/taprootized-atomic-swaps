@@ -1,9 +1,9 @@
-atomic_swap_contract_address = "0xC44f8853B1288F58B7CA8555208F502C36f87361"
+atomic_swap_contract_address = "0x85BEaB7f80B375175BeCC3f68Bf86d33099fD576"
 # You can use `ganache` to run a local Ethereum node
 ethereum_ws_rpc_url          = "wss://127.0.0.1:8545"
 
 [swap_params]
-sats_to_swap           = 125000
+sats_to_swap           = 2000
 gwei_to_swap           = 2500000
 bitcoin_csv_delay      = 8    # 80 minutes MUST be greater than ethereum_timelock_secs
 ethereum_timelock_secs = 3600 # 60 minutes MUST be less than bitcoin_csv_delay

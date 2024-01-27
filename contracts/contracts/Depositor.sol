@@ -4,7 +4,7 @@ pragma solidity 0.8.23;
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 library PoseidonUnit4L {
-    function poseidon(bytes32[4] calldata) public pure returns (bytes32) {}
+    function poseidon(uint256[4] calldata) public pure returns (uint256) {}
 }
 
 /**
@@ -72,12 +72,7 @@ contract Depositor {
      * @param secret The secret used to withdraw the deposit.
      * @param secretHash The Poseidon hash of the secret used to create the deposit.
      */
-    event Withdrawn(
-        address indexed recipient,
-        uint256 amount,
-        bytes32[4] secret,
-        bytes32 secretHash
-    );
+    event Withdrawn(address indexed recipient, uint256 amount, uint256 secret, bytes32 secretHash);
 
     /**
      * @notice Emitted when deposited funds are restored to the sender after the lock time has expired.
@@ -160,8 +155,8 @@ contract Depositor {
      *      Uses the PoseidonUnit1L library to hash the provided secret.
      * @param secret_ The prototype of the `secretHash` used in the deposit function.
      */
-    function withdraw(bytes32[4] calldata secret_) external {
-        bytes32 secretHash_ = PoseidonUnit4L.poseidon(secret_);
+    function withdraw(uint256 secret_) external {
+        bytes32 secretHash_ = _getSecretHash(secret_);
 
         Deposit storage userDeposit = deposits[secretHash_];
 
@@ -205,5 +200,14 @@ contract Depositor {
         Address.verifyCallResult(success_, data_);
 
         emit Restored(userDeposit.sender, depositAmount_, secretHash_);
+    }
+
+    function _getSecretHash(uint256 secret_) private pure returns (bytes32) {
+        uint256 part1 = secret_ >> 192;
+        uint256 part2 = ((secret_ >> 128) & 0xFFFFFFFFFFFFFFFF);
+        uint256 part3 = ((secret_ >> 64) & 0xFFFFFFFFFFFFFFFF);
+        uint256 part4 = (secret_ & 0xFFFFFFFFFFFFFFFF);
+
+        return bytes32(PoseidonUnit4L.poseidon([part4, part3, part2, part1]));
     }
 }
