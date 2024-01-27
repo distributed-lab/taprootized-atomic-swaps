@@ -11,7 +11,6 @@ use std::time::Duration;
 use std::{env, thread};
 
 use bdk::bitcoin::hashes::hex::ToHex;
-use bdk::bitcoin::network::message_network::RejectReason::Fee;
 use bdk::bitcoin::secp256k1::{All, Scalar, Secp256k1};
 use bdk::bitcoin::{secp256k1, Address as BitcoinAddress, Txid as BitcoinTxid};
 use bdk::blockchain::{Blockchain, RpcBlockchain as BitcoinClient};
@@ -21,9 +20,7 @@ use bdk::miniscript::descriptor::TapTree;
 use bdk::miniscript::policy::Concrete;
 use bdk::miniscript::Descriptor;
 use bdk::wallet::AddressIndex;
-use bdk::{
-    bitcoin, FeeRate, KeychainKind, SignOptions, SyncOptions, Wallet as BitcoinWallet, Wallet,
-};
+use bdk::{bitcoin, KeychainKind, SignOptions, SyncOptions, Wallet as BitcoinWallet, Wallet};
 use ethers::prelude::{LocalWallet, SignerMiddleware};
 use ethers::providers::{Middleware, Provider as EthereumClient, Provider, StreamExt, Ws};
 use ethers::signers::{LocalWallet as EthereumWallet, Signer};
