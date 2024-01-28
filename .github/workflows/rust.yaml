@@ -16,17 +16,8 @@ jobs:
     name: Lints
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: "rustfmt, clippy"
-          toolchain: 1.75.0
+      - name: Rust setup
+        uses: ./.github/actions/rust-setup
 
       - name: Run cargo check
         run: cargo check
@@ -45,14 +36,25 @@ jobs:
     name: Check Documentation
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Rust setup
+        uses: ./.github/actions/rust-setup
 
       - name: Run cargo doc
         run: cargo doc --no-deps
+
+  build:
+    needs: [lints, doctests]
+    name: Build
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Rust setup
+        uses: ./.github/actions/rust-setup
+
+      - name: Run cargo build
+        run: cargo build
+
+      - name: Run cargo build on release version
+        run: cargo build --release
