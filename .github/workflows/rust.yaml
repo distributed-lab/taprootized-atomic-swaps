@@ -16,6 +16,9 @@ jobs:
     name: Lints
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
       - name: Rust setup
         uses: ./.github/actions/rust-setup
 
@@ -36,6 +39,9 @@ jobs:
     name: Check Documentation
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
       - name: Rust setup
         uses: ./.github/actions/rust-setup
 
@@ -50,6 +56,9 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
       - name: Rust setup
         uses: ./.github/actions/rust-setup
 

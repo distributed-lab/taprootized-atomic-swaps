@@ -5,9 +5,6 @@ description: Install stable toolchain fo Rust
 runs:
   using: composite
   steps:
-    - name: Checkout sources
-      uses: actions/checkout@v2
-
     - name: Cache
       uses: Swatinem/rust-cache@v2
 
