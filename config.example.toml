@@ -6,6 +6,7 @@ ethereum_ws_rpc_url          = "wss://127.0.0.1:8545"
 
 [swap_params]
 # Amount of Bitcoin's satoshis, that you want to exchange on ethereum by atomic-swap.
+# If you use nigiri you can run `nigiri faucet <address> <amount>` to receive BTCs for test.
 sats_to_swap           = 2000
 # Amount of Ethereum's gwei, that you want to exchange on bitcoins by atomic-swap.
 gwei_to_swap           = 2500000
