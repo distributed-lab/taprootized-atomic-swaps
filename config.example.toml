@@ -1,29 +1,57 @@
+# The `Depositor` contract's address on the target Ethereum chain.
 atomic_swap_contract_address = "0x85BEaB7f80B375175BeCC3f68Bf86d33099fD576"
-# You can use `ganache` to run a local Ethereum node
+# Ethereum RPC to communicate with the network.
+# You can use `ganache` to run a local Ethereum node or Infura for mainnet, testnet chains.
 ethereum_ws_rpc_url          = "wss://127.0.0.1:8545"
 
 [swap_params]
+# Amount of Bitcoin's satoshis, that you want to exchange on ethereum by atomic-swap.
 sats_to_swap           = 2000
+# Amount of Ethereum's gwei, that you want to exchange on bitcoins by atomic-swap.
 gwei_to_swap           = 2500000
-bitcoin_csv_delay      = 8    # 80 minutes MUST be greater than ethereum_timelock_secs
-ethereum_timelock_secs = 3600 # 60 minutes MUST be less than bitcoin_csv_delay
+# The timelock for Bitcoin taproot transaction that will lock the money on Bitcoin. It MUST be
+# greater than ethereum_timelock_secs.
+bitcoin_csv_delay      = 8    # 80 minutes.
+# The timelock (in secs)for Ethereum deposit contract call that will lock the money on Ethereum. It
+# MUST be less than bitcoin_csv_delay.
+ethereum_timelock_secs = 3600 # 60 minutes.
 
 [bitcoin_rpc]
-# You can use `nigiri` to run a local Bitcoin regtest node
+# Bitcoin RPC to communicate with the network: send transactions, sync the wallet.
+# You can use `nigiri` to run a local Bitcoin regtest node.
 url                   = "http://127.0.0.1:18443"
+# RPC auth params.
 auth                  = { username = "admin1", password = "123" }
+# Network. enum: ["bitcoin", "testnet", "regtest"].
 network               = "regtest"
+# The block from which to start sync the wallet.
 start_block_timestamp = 1706196909
 
+# Pathes for circom artifacts.
+# For test purposes use ./scripts/atomic-swap-pre-build.sh
+# WARN: It'll download the .ptau file that is about 170MB.
 [circom]
+# Contains the Circom witness calculator.
+# You can obtain this file by compiling the atomic-swap Circom circuit by using
+# `./scripts/compile-circuit.sh` in the root of this repository.
 witnes_calculator_path = "./atomic_swap.dev/atomic_swap.wasm"
+# Contains the proving key to generate the ZK proof.
+# You can obtain this file by completing the trusted setup flow. For detail information
+# see: https://docs.circom.io/.
 proving_key_path = "./atomic_swap.dev/circuit_final.zkey"
+# Contains the verification key to verify the ZK proof.
 verification_key_path = "./atomic_swap.dev/verification_key.json"
 
+# Alice's private keys from both the networks.
+# Alice will swap the specified in swap_params.sats_to_swap amount of satoshis from her P2WPKH
+# Bitcoin address to Bob's swap_params.gwei_to_swap.
 [alice]
 bitcoin_private_key  = "dbf0d0e35b10578d001e3560946a40a5da79d24004b91685dd4eae947d435741"
 ethereum_private_key = "7319e149ff5ae8c0993261ef7d93c40c45dade4eb34c3ca20ba49260e9043a55"
 
+# Bob's private keys from both the networks.
+# Bob will swap the specified in swap_params.gwei_to_swap amount of gwei from his Ethereum
+# account to Bob's swap_params.sats_to_swap.
 [bob]
 bitcoin_private_key  = "227217f135a31615788fc6f96ebf48c305f41f8d25037b816171de6e4c8fe4f7"
 ethereum_private_key = "2d831c8af153f5fa626c19aa051ffa75dc9493a3ec75519c95355cd1bc8960e1"
