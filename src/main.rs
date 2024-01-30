@@ -2,14 +2,15 @@ extern crate config as exconfig;
 
 use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::ops::{Add, Div, Mul};
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
-use std::{env, thread};
+use std::{env, io, thread};
 
+use bdk::bitcoin::consensus::ReadExt;
 use bdk::bitcoin::hashes::hex::ToHex;
 use bdk::bitcoin::secp256k1::{All, Scalar, Secp256k1};
 use bdk::bitcoin::{secp256k1, Address as BitcoinAddress, Txid as BitcoinTxid};
@@ -20,7 +21,9 @@ use bdk::miniscript::descriptor::TapTree;
 use bdk::miniscript::policy::Concrete;
 use bdk::miniscript::Descriptor;
 use bdk::wallet::AddressIndex;
-use bdk::{bitcoin, KeychainKind, SignOptions, SyncOptions, Wallet as BitcoinWallet, Wallet};
+use bdk::{
+    bitcoin, FeeRate, KeychainKind, SignOptions, SyncOptions, Wallet as BitcoinWallet, Wallet,
+};
 use ethers::prelude::{LocalWallet, SignerMiddleware};
 use ethers::providers::{Middleware, Provider as EthereumClient, Provider, StreamExt, Ws};
 use ethers::signers::{LocalWallet as EthereumWallet, Signer};
@@ -499,10 +502,19 @@ impl SwapParticipant {
                 self.bitcoin_wallet.network(),
             )?;
 
-            let feerate = self
-                .bitcoin_client
-                .estimate_fee(2)
-                .wrap_err("failed to estimate fee")?;
+            let feerate = self.bitcoin_client.estimate_fee(2).unwrap_or_else(|err| {
+                println!("\nFailed to estimate Bitcoin feerate for withdraw: {}", err);
+                print!("Input your feerate sat/vByte (e.g. '60'): ");
+
+                io::stdout().flush().unwrap();
+                let mut input_feerate = String::new();
+                io::stdin()
+                    .read_line(&mut input_feerate)
+                    .expect("Failed to read line");
+                let feerate: u32 = input_feerate.trim().parse().expect("Input not an integer");
+
+                FeeRate::from_sat_per_vb(feerate as f32)
+            });
 
             builder
                 .fee_rate(feerate)
@@ -596,10 +608,19 @@ impl SwapParticipant {
         let (mut psbt, _details) = {
             let mut tx_builder = self.bitcoin_wallet.build_tx();
 
-            let feerate = self
-                .bitcoin_client
-                .estimate_fee(2)
-                .wrap_err("failed to estimate fee")?;
+            let feerate = self.bitcoin_client.estimate_fee(2).unwrap_or_else(|err| {
+                println!("| Failed to estimate Bitcoin feerate: {}", err);
+                print!("| Input your feerate sat/vByte (e.g. '60'): ");
+
+                io::stdout().flush().unwrap();
+                let mut input_feerate = String::new();
+                io::stdin()
+                    .read_line(&mut input_feerate)
+                    .expect("Failed to read line");
+                let feerate: u32 = input_feerate.trim().parse().expect("Input not an integer");
+
+                FeeRate::from_sat_per_vb(feerate as f32)
+            });
 
             tx_builder
                 .fee_rate(feerate)
