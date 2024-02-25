@@ -127,3 +127,6 @@ dependency to build the `rapidsnark-sys` crate.
 sudo apt update sudo apt upgrate
 sudo apt install libomp-dev
 ```
+
+### Acknowledgments
+We use a [circom ecdsa](https://github.com/0xPARC/circom-ecdsa) implementation from 0xPARC.
