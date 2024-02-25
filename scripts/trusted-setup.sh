@@ -10,13 +10,13 @@ if [ -d ./circuits ]; then
 elif [ -d ../circuits ]; then
     BUILD_DIR="../$BUILD_DIR"
 else
-    echo "Error: can't find way to circuits folder: unknow directory."
+    echo "Error: can't find way to circuits folder: unknown directory."
     exit 1
 fi
 
 mkdir -p $BUILD_DIR/$SETUP_POWERS
 
-# Generatin trusted setup as powers/SETUP_POWERS.ptau
+# Generating trusted setup as powers/SETUP_POWERS.ptau
 echo -e "\Generating trustep setup..."
 
 snarkjs powersoftau new bn128 ${SETUP_POWERS} ${BUILD_DIR}/${SETUP_POWERS}/pot${SETUP_POWERS}_0000.ptau

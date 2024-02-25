@@ -89,7 +89,7 @@ pub struct SwapParticipant {
     /// Posidon hash of the swap secret.
     ///
     /// It is [`Some`] only after either [`Self::new_atomic_swap`] for swap initiator or
-    /// [`Self::accept_atomic_swap`] for swap counteraprty.
+    /// [`Self::accept_atomic_swap`] for swap counterparty.
     swap_secret_hash: Option<[u8; 32]>,
 
     /// Counterparty's Bitcoin public key that is used as a revocation key in Taprootized

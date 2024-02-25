@@ -96,7 +96,7 @@ Ethereum-Bitcoin exchange between Alice and Bob.
 
 ## How to try it out?
 You can use either testnets for Ethereum and Bitcoin networks or run the local test networks by 
-using such utilits as [`ganache`](https://trufflesuite.com/ganache/) for Ehtereum and 
+using such utilities as [`ganache`](https://trufflesuite.com/ganache/) for Ethereum and 
 [`nigiri`](https://nigiri.vulpem.com/) for Bitcoin.
 
 You can use this deployed, verified and ready for use contracts:
@@ -124,7 +124,7 @@ can find it in the readme section, for ZK proof generation.
 Before compiling make sure, that you have the OpenMP installed on your device. It is required 
 dependency to build the `rapidsnark-sys` crate.
 ```bash
-sudo apt update sudo apt upgrate
+sudo apt update sudo apt upgrade
 sudo apt install libomp-dev
 ```
 
