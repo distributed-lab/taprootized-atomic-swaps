@@ -111,13 +111,9 @@ can find it in the readme section, for ZK proof generation.
    [`Circom`](https://docs.circom.io/getting-started/installation/), 
    [`SnarkJS`](https://docs.circom.io/getting-started/installation/#installing-circom)
 1. Setup `config.toml`. Check the config.example.toml for example, it has detailed description.
-2. Compile atomic-swap executable:
+2. Compile & run the script with a provided config path (because of the outdated packages, it can't be compiled in release mode as well as using `cargo install`):
    ```bash
-   cargo install --path .
-   ```
-3. Run the script with the config that is configured for section 2:
-   ```bash
-   taprootized-atomic-swap config.toml
+   cargo run config.toml
    ```
    
 ### Build for Linux
